@@ -307,13 +307,19 @@ async function startServer() {
         logger_1.logger.info('✅ Email processor initialized');
         // Start HTTP server
         server.listen(PORT, () => {
-            logger_1.logger.info(`🎉 Server running on http://localhost:${PORT}`);
-            logger_1.logger.info(`📊 Dashboard available at http://localhost:${PORT}/dashboard`);
-            logger_1.logger.info(`🔍 Health check: http://localhost:${PORT}/health`);
+            const serverUrl = process.env.NODE_ENV === 'production'
+                ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN || 'your-app'}.railway.app`
+                : `http://localhost:${PORT}`;
+            logger_1.logger.info(`🎉 Server running on ${serverUrl}`);
+            logger_1.logger.info(`📊 Dashboard available at ${serverUrl}/dashboard`);
+            logger_1.logger.info(`🔍 Health check: ${serverUrl}/health`);
             logger_1.logger.info(`📚 Environment: ${NODE_ENV}`);
             if (NODE_ENV === 'development') {
                 logger_1.logger.info('🔧 Development mode - detailed logging enabled');
                 logger_1.logger.info('🌐 Setup ngrok for webhooks: ngrok http ' + PORT);
+            }
+            else {
+                logger_1.logger.info('🚀 Production mode - webhooks ready for Railway public URLs');
             }
         });
     }

@@ -241,3 +241,4 @@ SESSION_SECRET="..."
 - Input validation with Zod schemas
 - CORS and security headers configured
 - do not touch the .env files. They are working corretly locally and should not be changed
+- make sure the solution compiles and runes locally without errors before pushing anything

@@ -470,7 +470,10 @@ router.post('/process-pending/:accountId', async (req, res) => {
         for (const email of pendingEmails) {
             try {
                 // Make internal API call to process individual email
-                const response = await fetch(`http://localhost:3000/api/monitoring/process-email/${email.id}`, {
+                const baseUrl = process.env.NODE_ENV === 'production'
+                    ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN || 'localhost:3000'}.railway.app`
+                    : 'http://localhost:3000';
+                const response = await fetch(`${baseUrl}/api/monitoring/process-email/${email.id}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' }
                 });

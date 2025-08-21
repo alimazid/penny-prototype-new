@@ -261,11 +261,39 @@ const RedisOperations = {
 };
 exports.RedisOperations = RedisOperations;
 // BullMQ compatible Redis connection
-exports.redisConnection = {
+// Parse REDIS_URL if available, otherwise use individual env vars for local development
+const parseRedisUrl = (url) => {
+    try {
+        const parsed = new URL(url);
+        return {
+            host: parsed.hostname,
+            port: parseInt(parsed.port) || 6379,
+            password: parsed.password || undefined,
+            username: parsed.username || undefined,
+            db: 0 // Default to DB 0 for Railway Redis
+        };
+    }
+    catch (error) {
+        // Fallback to localhost for local development
+        return {
+            host: 'localhost',
+            port: 6379,
+            password: undefined,
+            username: undefined,
+            db: 0
+        };
+    }
+};
+const redisUrl = process.env.REDIS_URL;
+const bullMQConfig = redisUrl ? parseRedisUrl(redisUrl) : {
     host: process.env.REDIS_HOST || 'localhost',
     port: parseInt(process.env.REDIS_PORT || '6379'),
     password: process.env.REDIS_PASSWORD,
+    username: process.env.REDIS_USERNAME,
     db: parseInt(process.env.REDIS_DB || '0'),
+};
+exports.redisConnection = {
+    ...bullMQConfig,
     maxRetriesPerRequest: null, // Required for BullMQ
     retryDelayOnFailover: 100,
     enableReadyCheck: false,

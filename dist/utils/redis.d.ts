@@ -48,14 +48,15 @@ declare const RedisOperations: {
     }>;
 };
 export declare const redisConnection: {
-    host: string;
-    port: number;
-    password: string;
-    db: number;
     maxRetriesPerRequest: any;
     retryDelayOnFailover: number;
     enableReadyCheck: boolean;
     maxLoadingTimeout: number;
+    host: string;
+    port: number;
+    password: string;
+    username: string;
+    db: number;
 };
 export { initializeRedis, checkRedisHealth, disconnectRedis, RedisOperations, redisClient, };
 //# sourceMappingURL=redis.d.ts.map

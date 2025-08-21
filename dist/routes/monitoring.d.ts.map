@@ -1,1 +1,1 @@
-{"version":3,"file":"monitoring.d.ts","sourceRoot":"","sources":["../../src/routes/monitoring.ts"],"names":[],"mappings":"AAAA,OAAgB,EAAE,MAAM,EAAE,MAAM,SAAS,CAAC;AAK1C,QAAA,MAAM,MAAM,EAAE,MAAyB,CAAC;AAmoBxC,eAAe,MAAM,CAAC"}
+{"version":3,"file":"monitoring.d.ts","sourceRoot":"","sources":["../../src/routes/monitoring.ts"],"names":[],"mappings":"AAAA,OAAgB,EAAE,MAAM,EAAE,MAAM,SAAS,CAAC;AAK1C,QAAA,MAAM,MAAM,EAAE,MAAyB,CAAC;AAuoBxC,eAAe,MAAM,CAAC"}
