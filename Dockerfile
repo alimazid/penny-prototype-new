@@ -10,8 +10,8 @@ COPY package.json pnpm-lock.yaml* ./
 # Install pnpm
 RUN npm install -g pnpm
 
-# Install dependencies
-RUN pnpm install --prod --frozen-lockfile
+# Install all dependencies (including dev for build)
+RUN pnpm install --frozen-lockfile
 
 # Copy source code
 COPY . .
@@ -20,7 +20,10 @@ COPY . .
 RUN npx prisma generate
 
 # Build the application
-RUN npm run build
+RUN pnpm run build
+
+# Remove dev dependencies to reduce image size
+RUN pnpm prune --prod
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs
