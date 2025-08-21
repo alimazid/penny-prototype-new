@@ -91,7 +91,7 @@ export class PerformanceMonitor {
   // Get all metrics
   static getAllMetrics() {
     const result: any = {};
-    for (const [name, values] of this.metrics.entries()) {
+    for (const [name] of this.metrics.entries()) {
       result[name] = this.getMetricStats(name);
     }
     return result;
