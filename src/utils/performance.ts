@@ -138,7 +138,7 @@ export class PerformanceMonitor {
       const duration = await timer.end({ ...tags, success: true });
       return { result, duration };
     } catch (error) {
-      const duration = await timer.end({ ...tags, success: false, error: true });
+      await timer.end({ ...tags, success: false, error: true });
       throw error;
     }
   }

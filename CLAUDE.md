@@ -240,3 +240,4 @@ SESSION_SECRET="..."
 - Environment-based secrets management
 - Input validation with Zod schemas
 - CORS and security headers configured
+- do not touch the .env files. They are working corretly locally and should not be changed

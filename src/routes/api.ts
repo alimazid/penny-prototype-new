@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Router } from 'express';
 import { PerformanceMonitor } from '../utils/performance';
 import { DatabaseOperations, prisma, OpenAIMetrics } from '../utils/database';
 import { logger } from '../utils/logger';
@@ -7,10 +7,10 @@ import { checkRedisHealth } from '../utils/redis';
 import { sampleEmailGenerator } from '../utils/sampleEmails';
 import { QueueService } from '../services/queueService';
 
-const router = express.Router();
+const router: Router = express.Router();
 
 // Performance metrics endpoint
-router.get('/metrics', async (req, res) => {
+router.get('/metrics', async (_req, res) => {
   try {
     const metrics = PerformanceMonitor.getAllMetrics();
     const systemMetrics = PerformanceMonitor.getSystemMetrics();
@@ -27,7 +27,7 @@ router.get('/metrics', async (req, res) => {
 });
 
 // Performance report
-router.get('/performance/report', async (req, res) => {
+router.get('/performance/report', async (_req, res) => {
   try {
     const report = PerformanceMonitor.generateReport();
     res.json(report);
@@ -38,7 +38,7 @@ router.get('/performance/report', async (req, res) => {
 });
 
 // System status
-router.get('/status', async (req, res) => {
+router.get('/status', async (_req, res) => {
   try {
     const [dbHealthy, redisHealthy] = await Promise.all([
       checkDatabaseHealth(),
@@ -75,7 +75,7 @@ router.get('/status', async (req, res) => {
 });
 
 // Database statistics
-router.get('/stats/database', async (req, res) => {
+router.get('/stats/database', async (_req, res) => {
   try {
     const [userCount, accountCount, emailCount, extractedCount] = await Promise.all([
       prisma.user.count(),

@@ -1,9 +1,9 @@
-import express from 'express';
+import express, { Router } from 'express';
 import { GmailService } from '../services/gmailService';
 import { DatabaseOperations, prisma } from '../utils/database';
 import { logger } from '../utils/logger';
 
-const router = express.Router();
+const router: Router = express.Router();
 
 // Gmail OAuth flow
 router.get('/google', async (req, res) => {
@@ -24,7 +24,7 @@ router.get('/google', async (req, res) => {
 router.get('/google/callback', async (req, res) => {
   try {
     const code = req.query.code as string;
-    const state = req.query.state as string; // userId
+    const _state = req.query.state as string; // userId
     
     if (!code) {
       return res.status(400).json({ error: 'Authorization code not provided' });
@@ -68,7 +68,7 @@ router.get('/google/callback', async (req, res) => {
 });
 
 // Check authentication status
-router.get('/status', async (req, res) => {
+router.get('/status', async (_req, res) => {
   try {
     // For prototype, we'll just check if we have any connected accounts
     // In production, this would check the user's session

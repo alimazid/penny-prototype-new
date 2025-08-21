@@ -1,9 +1,9 @@
-import express from 'express';
+import express, { Router } from 'express';
 import { emailMonitoringService } from '../services/emailMonitoringService';
-import { DatabaseOperations, prisma } from '../utils/database';
+import { prisma } from '../utils/database';
 import { logger } from '../utils/logger';
 
-const router = express.Router();
+const router: Router = express.Router();
 
 // Start monitoring an email account
 router.post('/start', async (req, res) => {
@@ -127,7 +127,7 @@ router.post('/sync', async (req, res) => {
 });
 
 // Get monitoring status for all accounts
-router.get('/status', async (req, res) => {
+router.get('/status', async (_req, res) => {
   try {
     const activeSessions = emailMonitoringService.getActiveMonitoringSessions();
     
@@ -625,7 +625,7 @@ router.get('/email/:emailId', async (req, res) => {
 });
 
 // Process stuck emails (emails that got stuck at CLASSIFIED status)
-router.post('/process-stuck-emails', async (req, res) => {
+router.post('/process-stuck-emails', async (_req, res) => {
   try {
     const { emailProcessor } = await import('../workers/emailProcessor');
     const result = await emailProcessor.processStuckEmails();

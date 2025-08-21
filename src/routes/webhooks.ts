@@ -1,10 +1,10 @@
-import express from 'express';
+import express, { Router } from 'express';
 import crypto from 'crypto';
 import { logger } from '../utils/logger';
 import { GmailService } from '../services/gmailService';
 import { DatabaseOperations } from '../utils/database';
 
-const router = express.Router();
+const router: Router = express.Router();
 
 // Gmail Pub/Sub webhook endpoint
 router.post('/gmail', async (req, res) => {

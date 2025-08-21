@@ -1,10 +1,10 @@
-import express from 'express';
+import express, { Router } from 'express';
 import { GmailService } from '../services/gmailService';
 import { DatabaseOperations, prisma } from '../utils/database';
 import { logger } from '../utils/logger';
 import { PerformanceMonitor } from '../utils/performance';
 
-const router = express.Router();
+const router: Router = express.Router();
 
 // Get processed emails
 router.get('/', async (req, res) => {
@@ -146,7 +146,7 @@ router.post('/sync/:accountId', async (req, res) => {
 });
 
 // Get email statistics
-router.get('/stats/summary', async (req, res) => {
+router.get('/stats/summary', async (_req, res) => {
   try {
     const stats = await prisma.processedEmail.aggregate({
       _count: {

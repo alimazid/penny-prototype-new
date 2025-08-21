@@ -1,8 +1,8 @@
 import { Queue, Worker, Job } from 'bullmq';
 import { redisConnection } from '../utils/redis';
 import { logger } from '../utils/logger';
-import { DatabaseOperations, prisma } from '../utils/database';
-import { getWebSocketServiceInstance } from './websocketService';
+import { prisma } from '../utils/database';
+// import { getWebSocketServiceInstance } from './websocketService';
 
 export interface EmailProcessingJobData {
   emailAccountId: string;
