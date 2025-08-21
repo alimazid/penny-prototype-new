@@ -1,5 +1,8 @@
 node_modules
 
+# Build output
+dist/
+
 # Environment files containing sensitive data
 config/prototype.env
 config/*.env
