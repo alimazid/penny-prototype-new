@@ -15,7 +15,11 @@
     "db:studio": "npx prisma studio",
     "setup": "chmod +x scripts/setup.sh && ./scripts/setup.sh",
     "lint": "eslint src --ext .ts",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "railway:start": "chmod +x scripts/railway-start.sh && ./scripts/railway-start.sh",
+    "railway:migrate": "npx prisma migrate deploy",
+    "railway:generate": "npx prisma generate",
+    "railway:build": "npm run build && npm run railway:generate"
   },
   "dependencies": {
     "express": "^4.18.2",
