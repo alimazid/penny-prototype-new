@@ -33,8 +33,8 @@ export class EmailProcessor {
       {
         connection: redisConnection,
         concurrency: parseInt(process.env.QUEUE_CONCURRENCY || '2'),
-        removeOnComplete: 50,
-        removeOnFail: 100,
+        removeOnComplete: { count: 50 },
+        removeOnFail: { count: 100 },
       }
     );
 
@@ -124,7 +124,7 @@ export class EmailProcessor {
       gmailService.setCredentials({
         accessToken: emailAccount.accessToken,
         refreshToken: emailAccount.refreshToken,
-        expiryDate: emailAccount.tokenExpiresAt?.getTime(),
+        expiryDate: emailAccount.tokenExpiresAt?.getTime() ?? 0,
       });
 
       // Broadcast sync started
@@ -456,15 +456,15 @@ export class EmailProcessor {
       await prisma.extractedData.create({
         data: {
           emailId: emailId,
-          transactionAmount: extraction.amount,
-          currency: extraction.currency,
+          transactionAmount: extraction.amount ?? null,
+          currency: extraction.currency ?? null,
           transactionDate: extraction.date ? new Date(extraction.date) : null,
-          merchantName: extraction.merchantName,
-          merchantCategory: extraction.category,
-          accountNumber: extraction.accountNumber,
-          referenceNumber: extraction.transactionId,
+          merchantName: extraction.merchantName ?? null,
+          merchantCategory: extraction.category ?? null,
+          accountNumber: extraction.accountNumber ?? null,
+          referenceNumber: extraction.transactionId ?? null,
           transactionType: this.mapTransactionTypeToEnum(extraction.transactionType) as any,
-          description: extraction.description,
+          description: extraction.description ?? null,
           extractionScore: extraction.confidence
         }
       });

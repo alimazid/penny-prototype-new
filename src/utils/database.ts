@@ -437,15 +437,15 @@ const DatabaseOperations = {
       await prisma.extractedData.create({
         data: {
           emailId,
-          transactionAmount: data.amount,
-          currency: data.currency,
-          transactionDate: data.date ? new Date(data.date) : undefined,
-          merchantName: data.merchantName,
-          merchantCategory: data.extractedCategory,
-          accountNumber: data.accountNumber,
+          transactionAmount: data.amount ?? null,
+          currency: data.currency ?? null,
+          transactionDate: data.date ? new Date(data.date) : null,
+          merchantName: data.merchantName ?? null,
+          merchantCategory: data.extractedCategory ?? null,
+          accountNumber: data.accountNumber ?? null,
           transactionType: data.transactionType as any,
-          description: data.description,
-          referenceNumber: data.transactionId,
+          description: data.description ?? null,
+          referenceNumber: data.transactionId ?? null,
           extractionScore: data.extractionConfidence,
         },
       });
