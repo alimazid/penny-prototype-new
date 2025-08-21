@@ -147,7 +147,7 @@ class EmailMonitoringService {
             const wsService = (0, websocketService_1.getWebSocketServiceInstance)();
             if (wsService) {
                 wsService.broadcastEmailUpdate({
-                    type: 'processing',
+                    type: 'started',
                     emailId: '',
                     accountId,
                     message: `Manual sync started for ${session.gmailAddress}`,
@@ -176,16 +176,16 @@ class EmailMonitoringService {
                 return;
             }
             // If we have a history ID, check for changes since then
-            if (account.lastHistoryId) {
+            if (account.syncSettings?.lastHistoryId) {
                 try {
-                    const history = await gmailService.getHistory(account.lastHistoryId);
+                    const history = await gmailService.getHistory(account.syncSettings.lastHistoryId);
                     if (history.messages.length > 0) {
                         logger_1.logger.info(`Found ${history.messages.length} new messages for ${session.gmailAddress}`);
                         // Broadcast that we found new emails
                         const wsService = (0, websocketService_1.getWebSocketServiceInstance)();
                         if (wsService) {
                             wsService.broadcastEmailUpdate({
-                                type: 'received',
+                                type: 'started',
                                 emailId: '',
                                 accountId: session.accountId,
                                 message: `Found ${history.messages.length} new emails`,
@@ -200,7 +200,7 @@ class EmailMonitoringService {
                         await database_1.prisma.emailAccount.update({
                             where: { id: session.accountId },
                             data: {
-                                lastHistoryId: history.historyId,
+                                syncSettings: { lastHistoryId: history.historyId },
                                 lastSyncAt: new Date()
                             }
                         });
@@ -255,7 +255,7 @@ class EmailMonitoringService {
                 return;
             }
             // Create processed email record
-            const processedEmail = await database_1.DatabaseOperations.createProcessedEmail({
+            const processedEmail = await database_1.DatabaseOperations.createProcessedEmailRecord({
                 emailAccountId: session.accountId,
                 gmailId: emailDetails.id,
                 messageId: emailDetails.messageId,
@@ -277,7 +277,7 @@ class EmailMonitoringService {
             const wsService = (0, websocketService_1.getWebSocketServiceInstance)();
             if (wsService) {
                 wsService.broadcastEmailUpdate({
-                    type: 'received',
+                    type: 'started',
                     emailId: processedEmail.id,
                     accountId: session.accountId,
                     message: `New email: ${emailDetails.subject}`,

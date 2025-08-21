@@ -333,16 +333,16 @@ router.post('/testing/generate-emails', async (req, res) => {
           language: 'en',
           currency: 'USD',
           timezone: 'UTC'
-        });
+        }) as any;
       }
 
       let testAccount = await prisma.emailAccount.findFirst({
-        where: { userId: testUser.id }
+        where: { userId: testUser!.id }
       });
       
       if (!testAccount) {
         testAccount = await DatabaseOperations.createEmailAccount({
-          userId: testUser.id,
+          userId: testUser!.id,
           gmailAddress: 'test@example.com',
           accessToken: 'test_access_token',
           refreshToken: 'test_refresh_token'

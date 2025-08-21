@@ -4,6 +4,7 @@ exports.QueueService = void 0;
 const bullmq_1 = require("bullmq");
 const redis_1 = require("../utils/redis");
 const logger_1 = require("../utils/logger");
+const database_1 = require("../utils/database");
 class QueueService {
     static instance;
     emailQueue = null;
@@ -71,7 +72,7 @@ class QueueService {
         try {
             // Create job in database first
             const jobId = `${data.processType}-${data.emailId || data.emailAccountId}-${Date.now()}`;
-            await DatabaseOperations.createQueueJob({
+            await database_1.DatabaseOperations.createQueueJob({
                 jobId,
                 queueName: 'email-processing',
                 jobType: data.processType.toUpperCase(),
