@@ -177,7 +177,7 @@ router.get('/status/:accountId', async (req, res) => {
     res.json({
       success: true,
       isMonitoring,
-      startedAt: monitoringSession?.startedAt || null,
+      startedAt: monitoringSession?.lastChecked || null,
       accountId: isMonitoring ? accountId : null,
       checkInterval: emailMonitoringService.getCheckInterval()
     });
@@ -393,7 +393,7 @@ router.post('/process-email/:emailId', async (req, res) => {
       await prisma.processedEmail.update({
         where: { id: emailId },
         data: {
-          classification: classificationEnum,
+          classification: classificationEnum as any,
           confidenceScore: classification.confidence,
           processingStatus: 'COMPLETED',
           language: classification.language || 'en'
@@ -506,8 +506,8 @@ router.post('/process-pending/:accountId', async (req, res) => {
         if (response.ok) {
           processedCount++;
         } else {
-          const errorResult = await response.json();
-          errors.push(`${email.id}: ${errorResult.message}`);
+          const errorResult = await response.json() as { message?: string };
+          errors.push(`${email.id}: ${errorResult.message || 'Unknown error'}`);
         }
       } catch (error) {
         errors.push(`${email.id}: ${error instanceof Error ? error.message : 'Unknown error'}`);

@@ -42,10 +42,10 @@ router.post('/gmail', async (req, res) => {
     });
     
     // Find the email account
-    const account = await DatabaseOperations.prisma.emailAccount.findFirst({
+    const account = await prisma.emailAccount.findFirst({
       where: { 
         gmailAddress: notification.emailAddress,
-        isActive: true 
+        isConnected: true 
       }
     });
     
@@ -62,9 +62,10 @@ router.post('/gmail', async (req, res) => {
     });
     
     // Get history since last known historyId
-    if (account.lastHistoryId) {
+    const lastHistoryId = (account.syncSettings as any)?.lastHistoryId;
+    if (lastHistoryId) {
       try {
-        const history = await gmailService.getHistory(account.lastHistoryId);
+        const history = await gmailService.getHistory(lastHistoryId);
         
         logger.info(`Processing ${history.messages.length} new messages`);
         
@@ -80,7 +81,7 @@ router.post('/gmail', async (req, res) => {
             
             if (isFinancial) {
               // Check if already processed
-              const existing = await DatabaseOperations.prisma.processedEmail.findFirst({
+              const existing = await prisma.processedEmail.findFirst({
                 where: { gmailId: emailDetails.id }
               });
               
@@ -109,10 +110,10 @@ router.post('/gmail', async (req, res) => {
         }
         
         // Update last history ID
-        await DatabaseOperations.prisma.emailAccount.update({
+        await prisma.emailAccount.update({
           where: { id: account.id },
           data: { 
-            lastHistoryId: history.historyId,
+            syncSettings: { lastHistoryId: history.historyId },
             lastSyncAt: new Date()
           }
         });
@@ -122,10 +123,10 @@ router.post('/gmail', async (req, res) => {
       }
     } else {
       // First time - just update the history ID
-      await DatabaseOperations.prisma.emailAccount.update({
+      await prisma.emailAccount.update({
         where: { id: account.id },
         data: { 
-          lastHistoryId: notification.historyId,
+          syncSettings: { lastHistoryId: notification.historyId },
           lastSyncAt: new Date()
         }
       });

@@ -1,5 +1,5 @@
 import { google, gmail_v1 } from 'googleapis';
-import { OAuth2Client } from 'google-auth-library';
+// import { OAuth2Client } from 'google-auth-library';
 import { logger } from '../utils/logger';
 import { PerformanceMonitor } from '../utils/performance';
 import { DatabaseOperations } from '../utils/database';
@@ -27,7 +27,7 @@ export interface GmailCredentials {
 }
 
 export class GmailService {
-  private oauth2Client: OAuth2Client;
+  private oauth2Client: any;
   private gmail: gmail_v1.Gmail;
 
   constructor() {
@@ -159,7 +159,10 @@ export class GmailService {
       });
 
       return {
-        messages: response.data.messages || [],
+        messages: (response.data.messages || []).map(msg => ({
+          id: msg.id || '',
+          threadId: msg.threadId || ''
+        })),
         nextPageToken: response.data.nextPageToken || undefined,
         resultSizeEstimate: response.data.resultSizeEstimate || 0,
       };
@@ -203,7 +206,10 @@ export class GmailService {
       });
 
       return {
-        messages: response.data.messages || [],
+        messages: (response.data.messages || []).map(msg => ({
+          id: msg.id || '',
+          threadId: msg.threadId || ''
+        })),
         nextPageToken: response.data.nextPageToken || undefined,
         resultSizeEstimate: response.data.resultSizeEstimate || 0,
       };

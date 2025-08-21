@@ -358,7 +358,7 @@ router.post('/testing/generate-emails', async (req, res) => {
       const wsService = getWebSocketServiceInstance();
 
       for (const email of sampleEmails) {
-        const processedEmail = await DatabaseOperations.createProcessedEmail({
+        const processedEmail = await DatabaseOperations.createProcessedEmailRecord({
           gmailId: email.id,
           emailAccountId: testAccount.id,
           subject: email.subject,

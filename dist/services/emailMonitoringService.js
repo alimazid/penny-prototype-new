@@ -258,7 +258,6 @@ class EmailMonitoringService {
             const processedEmail = await database_1.DatabaseOperations.createProcessedEmailRecord({
                 emailAccountId: session.accountId,
                 gmailId: emailDetails.id,
-                messageId: emailDetails.messageId,
                 threadId: emailDetails.threadId,
                 subject: emailDetails.subject,
                 sender: emailDetails.from,
@@ -266,11 +265,8 @@ class EmailMonitoringService {
                 bodyText: emailDetails.body,
                 bodyHtml: '', // We'll enhance this later if needed
                 receivedAt: emailDetails.date,
-                contentHash: gmailService.generateContentHash(emailDetails),
-                bodyPreview: emailDetails.bodyPreview,
                 hasAttachments: emailDetails.hasAttachments,
-                labelIds: emailDetails.labels,
-                processingStatus: 'PENDING'
+                labelIds: emailDetails.labels
             });
             logger_1.logger.info(`Created processed email record for: ${emailDetails.subject}`);
             // Broadcast new email discovery
@@ -323,6 +319,9 @@ class EmailMonitoringService {
     setCheckInterval(intervalMs) {
         this.checkInterval = Math.max(10000, intervalMs); // Minimum 10 seconds
         logger_1.logger.info(`Updated monitoring check interval to ${this.checkInterval}ms`);
+    }
+    getCheckInterval() {
+        return this.checkInterval;
     }
 }
 exports.EmailMonitoringService = EmailMonitoringService;

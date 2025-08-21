@@ -32,6 +32,7 @@ export declare class EmailMonitoringService {
     getMonitoringSession(accountId: string): MonitoringSession | undefined;
     stopAllMonitoring(): Promise<void>;
     setCheckInterval(intervalMs: number): void;
+    getCheckInterval(): number;
 }
 export declare const emailMonitoringService: EmailMonitoringService;
 //# sourceMappingURL=emailMonitoringService.d.ts.map

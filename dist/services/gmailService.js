@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.GmailService = void 0;
 const googleapis_1 = require("googleapis");
+// import { OAuth2Client } from 'google-auth-library';
 const logger_1 = require("../utils/logger");
 const performance_1 = require("../utils/performance");
 const crypto_1 = __importDefault(require("crypto"));
@@ -114,7 +115,10 @@ class GmailService {
                 resultCount: response.data.messages?.length || 0
             });
             return {
-                messages: response.data.messages || [],
+                messages: (response.data.messages || []).map(msg => ({
+                    id: msg.id || '',
+                    threadId: msg.threadId || ''
+                })),
                 nextPageToken: response.data.nextPageToken || undefined,
                 resultSizeEstimate: response.data.resultSizeEstimate || 0,
             };
@@ -145,7 +149,10 @@ class GmailService {
                 resultCount: response.data.messages?.length || 0
             });
             return {
-                messages: response.data.messages || [],
+                messages: (response.data.messages || []).map(msg => ({
+                    id: msg.id || '',
+                    threadId: msg.threadId || ''
+                })),
                 nextPageToken: response.data.nextPageToken || undefined,
                 resultSizeEstimate: response.data.resultSizeEstimate || 0,
             };

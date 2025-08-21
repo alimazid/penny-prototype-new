@@ -106,7 +106,7 @@ const RedisOperations = {
     },
     async expire(key, seconds) {
         const client = await initializeRedis();
-        return (await client.expire(key, seconds)) === 1;
+        return Boolean(await client.expire(key, seconds));
     },
     async ttl(key) {
         const client = await initializeRedis();

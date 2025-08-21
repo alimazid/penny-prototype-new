@@ -308,7 +308,6 @@ export class EmailMonitoringService {
       const processedEmail = await DatabaseOperations.createProcessedEmailRecord({
         emailAccountId: session.accountId,
         gmailId: emailDetails.id,
-        messageId: emailDetails.messageId,
         threadId: emailDetails.threadId,
         subject: emailDetails.subject,
         sender: emailDetails.from,
@@ -316,11 +315,8 @@ export class EmailMonitoringService {
         bodyText: emailDetails.body,
         bodyHtml: '', // We'll enhance this later if needed
         receivedAt: emailDetails.date,
-        contentHash: gmailService.generateContentHash(emailDetails),
-        bodyPreview: emailDetails.bodyPreview,
         hasAttachments: emailDetails.hasAttachments,
-        labelIds: emailDetails.labels,
-        processingStatus: 'PENDING'
+        labelIds: emailDetails.labels
       });
 
       logger.info(`Created processed email record for: ${emailDetails.subject}`);
@@ -384,6 +380,10 @@ export class EmailMonitoringService {
   setCheckInterval(intervalMs: number): void {
     this.checkInterval = Math.max(10000, intervalMs); // Minimum 10 seconds
     logger.info(`Updated monitoring check interval to ${this.checkInterval}ms`);
+  }
+
+  getCheckInterval(): number {
+    return this.checkInterval;
   }
 }
 

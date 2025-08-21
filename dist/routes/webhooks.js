@@ -40,10 +40,10 @@ router.post('/gmail', async (req, res) => {
             historyId: notification.historyId,
         });
         // Find the email account
-        const account = await database_1.DatabaseOperations.prisma.emailAccount.findFirst({
+        const account = await database_1.prisma.emailAccount.findFirst({
             where: {
                 gmailAddress: notification.emailAddress,
-                isActive: true
+                isConnected: true
             }
         });
         if (!account) {
@@ -57,9 +57,10 @@ router.post('/gmail', async (req, res) => {
             expiryDate: account.tokenExpiresAt?.getTime(),
         });
         // Get history since last known historyId
-        if (account.lastHistoryId) {
+        const lastHistoryId = account.syncSettings?.lastHistoryId;
+        if (lastHistoryId) {
             try {
-                const history = await gmailService.getHistory(account.lastHistoryId);
+                const history = await gmailService.getHistory(lastHistoryId);
                 logger_1.logger.info(`Processing ${history.messages.length} new messages`);
                 // Process new messages
                 for (const message of history.messages) {
@@ -71,7 +72,7 @@ router.post('/gmail', async (req, res) => {
                             .test(emailDetails.subject + ' ' + emailDetails.bodyPreview);
                         if (isFinancial) {
                             // Check if already processed
-                            const existing = await database_1.DatabaseOperations.prisma.processedEmail.findFirst({
+                            const existing = await database_1.prisma.processedEmail.findFirst({
                                 where: { gmailId: emailDetails.id }
                             });
                             if (!existing) {
@@ -98,10 +99,10 @@ router.post('/gmail', async (req, res) => {
                     }
                 }
                 // Update last history ID
-                await database_1.DatabaseOperations.prisma.emailAccount.update({
+                await database_1.prisma.emailAccount.update({
                     where: { id: account.id },
                     data: {
-                        lastHistoryId: history.historyId,
+                        syncSettings: { lastHistoryId: history.historyId },
                         lastSyncAt: new Date()
                     }
                 });
@@ -112,10 +113,10 @@ router.post('/gmail', async (req, res) => {
         }
         else {
             // First time - just update the history ID
-            await database_1.DatabaseOperations.prisma.emailAccount.update({
+            await database_1.prisma.emailAccount.update({
                 where: { id: account.id },
                 data: {
-                    lastHistoryId: notification.historyId,
+                    syncSettings: { lastHistoryId: notification.historyId },
                     lastSyncAt: new Date()
                 }
             });

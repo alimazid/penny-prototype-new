@@ -45,7 +45,7 @@ router.get('/google/callback', async (req, res) => {
       user = await DatabaseOperations.createUser({
         email: profile.email,
         displayName: profile.email.split('@')[0],
-      });
+      }) as any;
     }
     
     // Store email account with tokens

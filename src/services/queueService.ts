@@ -69,15 +69,15 @@ export class QueueService {
       logger.debug(`Job ${job.id} is waiting in queue`);
     });
 
-    this.emailQueue.on('active', (job) => {
+    (this.emailQueue as any).on('active', (job: any) => {
       logger.debug(`Job ${job.id} started processing`);
     });
 
-    this.emailQueue.on('completed', (job) => {
+    (this.emailQueue as any).on('completed', (job: any) => {
       logger.debug(`Job ${job.id} completed`);
     });
 
-    this.emailQueue.on('failed', (job, error) => {
+    (this.emailQueue as any).on('failed', (job: any, error: any) => {
       logger.error(`Job ${job?.id} failed in queue:`, error);
     });
   }

@@ -185,7 +185,7 @@ router.get('/status/:accountId', async (req, res) => {
         res.json({
             success: true,
             isMonitoring,
-            startedAt: monitoringSession?.startedAt || null,
+            startedAt: monitoringSession?.lastChecked || null,
             accountId: isMonitoring ? accountId : null,
             checkInterval: emailMonitoringService_1.emailMonitoringService.getCheckInterval()
         });
@@ -479,7 +479,7 @@ router.post('/process-pending/:accountId', async (req, res) => {
                 }
                 else {
                     const errorResult = await response.json();
-                    errors.push(`${email.id}: ${errorResult.message}`);
+                    errors.push(`${email.id}: ${errorResult.message || 'Unknown error'}`);
                 }
             }
             catch (error) {

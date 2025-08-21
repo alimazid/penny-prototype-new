@@ -116,7 +116,7 @@ const RedisOperations = {
 
   async expire(key: string, seconds: number): Promise<boolean> {
     const client = await initializeRedis();
-    return (await client.expire(key, seconds)) === 1;
+    return Boolean(await client.expire(key, seconds));
   },
 
   async ttl(key: string): Promise<number> {
@@ -259,10 +259,10 @@ const RedisOperations = {
   },
 
   async cacheGet<T>(key: string): Promise<T | null> {
-    const cached = await this.getJSON<{
+    const cached = await this.getJSON(`cache:${key}`) as {
       data: T;
       timestamp: number;
-    }>(`cache:${key}`);
+    } | null;
     
     return cached ? cached.data : null;
   },
@@ -281,7 +281,7 @@ const RedisOperations = {
   },
 
   async getSession<T>(sessionId: string): Promise<T | null> {
-    return await this.getJSON<T>(`session:${sessionId}`);
+    return await this.getJSON(`session:${sessionId}`) as T | null;
   },
 
   async deleteSession(sessionId: string): Promise<number> {
