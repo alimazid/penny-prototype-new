@@ -1,7 +1,7 @@
-import { Queue, Worker, Job } from 'bullmq';
+import { Queue, Job } from 'bullmq';
 import { redisConnection } from '../utils/redis';
 import { logger } from '../utils/logger';
-import { prisma } from '../utils/database';
+// import { prisma } from '../utils/database';
 // import { getWebSocketServiceInstance } from './websocketService';
 
 export interface EmailProcessingJobData {

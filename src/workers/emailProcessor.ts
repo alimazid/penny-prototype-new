@@ -161,7 +161,7 @@ export class EmailProcessor {
           }
 
           // Store email in database
-          const processedEmail = await DatabaseOperations.createProcessedEmail({
+          const processedEmail = await DatabaseOperations.createProcessedEmailRecord({
             gmailId: email.id,
             emailAccountId: emailAccount.id,
             subject: (email as any).subject,

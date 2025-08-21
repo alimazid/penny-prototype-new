@@ -548,11 +548,11 @@ export class OpenAIService {
     if (accountNumber !== undefined) confidence += 0.2;
     
     return {
-      amount,
-      currency,
-      date,
-      merchantName,
-      accountNumber,
+      amount: amount ?? undefined,
+      currency: currency ?? undefined,
+      date: date ?? undefined,
+      merchantName: merchantName ?? undefined,
+      accountNumber: accountNumber ?? undefined,
       transactionType: 'payment', // Default for credit card transactions
       confidence: Math.min(confidence, 0.8), // Cap at 0.8 for fallback extraction
     };
