@@ -2,7 +2,7 @@ import express, { Router } from 'express';
 import crypto from 'crypto';
 import { logger } from '../utils/logger';
 import { GmailService } from '../services/gmailService';
-import { DatabaseOperations } from '../utils/database';
+import { DatabaseOperations, prisma } from '../utils/database';
 
 const router: Router = express.Router();
 

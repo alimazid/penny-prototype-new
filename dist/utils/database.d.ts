@@ -37,7 +37,7 @@ declare const DatabaseOperations: {
         createdAt: Date;
         updatedAt: Date;
     }>;
-    findUserByEmail(email: string): Promise<({
+    findUserByEmail(email: string): Promise<{
         emailAccounts: {
             id: string;
             createdAt: Date;
@@ -62,7 +62,7 @@ declare const DatabaseOperations: {
         isActive: boolean;
         createdAt: Date;
         updatedAt: Date;
-    }) | null>;
+    }>;
     createEmailAccount(data: {
         userId: string;
         gmailAddress: string;
@@ -325,7 +325,7 @@ declare const DatabaseOperations: {
         completedAt: Date | null;
         failedAt: Date | null;
     }>;
-    findEmailAccountById(accountId: string): Promise<({
+    findEmailAccountById(accountId: string): Promise<{
         user: {
             id: string;
             email: string;
@@ -350,7 +350,7 @@ declare const DatabaseOperations: {
         syncSettings: import("@prisma/client/runtime/library").JsonValue;
         errorCount: number;
         userId: string;
-    }) | null>;
+    }>;
     findProcessedEmailByGmailId(gmailId: string): Promise<{
         classification: import("@prisma/client").$Enums.EmailClassification;
         id: string;
@@ -376,7 +376,7 @@ declare const DatabaseOperations: {
         processingTimeMs: number | null;
         retryCount: number;
         accountId: string;
-    } | null>;
+    }>;
     findProcessedEmailById(emailId: string): Promise<{
         classification: import("@prisma/client").$Enums.EmailClassification;
         id: string;
@@ -402,7 +402,7 @@ declare const DatabaseOperations: {
         processingTimeMs: number | null;
         retryCount: number;
         accountId: string;
-    } | null>;
+    }>;
     createProcessedEmailRecord(data: {
         gmailId: string;
         emailAccountId: string;

@@ -181,7 +181,7 @@ export class EmailMonitoringService {
       const wsService = getWebSocketServiceInstance();
       if (wsService) {
         wsService.broadcastEmailUpdate({
-          type: 'processing',
+          type: 'started',
           emailId: '',
           accountId,
           message: `Manual sync started for ${session.gmailAddress}`,
@@ -216,9 +216,9 @@ export class EmailMonitoringService {
       }
 
       // If we have a history ID, check for changes since then
-      if (account.lastHistoryId) {
+      if ((account.syncSettings as any)?.lastHistoryId) {
         try {
-          const history = await gmailService.getHistory(account.lastHistoryId);
+          const history = await gmailService.getHistory((account.syncSettings as any).lastHistoryId);
           
           if (history.messages.length > 0) {
             logger.info(`Found ${history.messages.length} new messages for ${session.gmailAddress}`);
@@ -227,7 +227,7 @@ export class EmailMonitoringService {
             const wsService = getWebSocketServiceInstance();
             if (wsService) {
               wsService.broadcastEmailUpdate({
-                type: 'received',
+                type: 'started',
                 emailId: '',
                 accountId: session.accountId,
                 message: `Found ${history.messages.length} new emails`,
@@ -244,7 +244,7 @@ export class EmailMonitoringService {
             await prisma.emailAccount.update({
               where: { id: session.accountId },
               data: { 
-                lastHistoryId: history.historyId,
+                syncSettings: { lastHistoryId: history.historyId },
                 lastSyncAt: new Date()
               }
             });
@@ -305,7 +305,7 @@ export class EmailMonitoringService {
       }
 
       // Create processed email record
-      const processedEmail = await DatabaseOperations.createProcessedEmail({
+      const processedEmail = await DatabaseOperations.createProcessedEmailRecord({
         emailAccountId: session.accountId,
         gmailId: emailDetails.id,
         messageId: emailDetails.messageId,
@@ -329,7 +329,7 @@ export class EmailMonitoringService {
       const wsService = getWebSocketServiceInstance();
       if (wsService) {
         wsService.broadcastEmailUpdate({
-          type: 'received',
+          type: 'started',
           emailId: processedEmail.id,
           accountId: session.accountId,
           message: `New email: ${emailDetails.subject}`,

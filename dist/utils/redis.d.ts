@@ -50,9 +50,9 @@ declare const RedisOperations: {
 export declare const redisConnection: {
     host: string;
     port: number;
-    password: string | undefined;
+    password: string;
     db: number;
-    maxRetriesPerRequest: null;
+    maxRetriesPerRequest: any;
     retryDelayOnFailover: number;
     enableReadyCheck: boolean;
     maxLoadingTimeout: number;

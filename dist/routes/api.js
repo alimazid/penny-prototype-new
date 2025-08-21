@@ -243,7 +243,7 @@ router.get('/queue/stats', async (req, res) => {
     }
 });
 // Configuration info (non-sensitive)
-router.get('/config', (req, res) => {
+router.get('/config', (_req, res) => {
     try {
         res.json({
             environment: process.env.NODE_ENV || 'development',
@@ -269,7 +269,7 @@ router.get('/config', (req, res) => {
     }
 });
 // Development/Testing endpoints
-router.get('/testing/env', (req, res) => {
+router.get('/testing/env', (_req, res) => {
     res.json({
         NODE_ENV: process.env.NODE_ENV,
         isDevelopment: process.env.NODE_ENV === 'development',

@@ -5,13 +5,13 @@ export declare class PerformanceMonitor {
     static addMetric(name: string, value: number): void;
     static getMetricStats(name: string): {
         count: number;
-        min: number | undefined;
-        max: number | undefined;
+        min: number;
+        max: number;
         avg: number;
-        p50: number | undefined;
-        p95: number | undefined;
-        p99: number | undefined;
-    } | null;
+        p50: number;
+        p95: number;
+        p99: number;
+    };
     static getAllMetrics(): any;
     static timer(name: string): {
         end: (tags?: any) => Promise<number>;
@@ -63,7 +63,7 @@ export declare class PerformanceMonitor {
         };
         performance: any;
         summary: {
-            totalRequests: number;
+            totalRequests: unknown;
             averageResponseTime: number;
             slowestEndpoints: {
                 name: string;

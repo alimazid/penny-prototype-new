@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Application } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -25,7 +25,7 @@ import { PerformanceMonitor } from './utils/performance';
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, '../config/prototype.env') });
 
-const app = express();
+const app: Application = express();
 const PORT = process.env.PORT || 3000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 

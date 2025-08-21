@@ -255,8 +255,8 @@ const DatabaseOperations = {
                 toAddresses: data.recipient ? [data.recipient] : [],
                 receivedAt: data.receivedAt || new Date(),
                 contentHash: `hash_${data.gmailId}`,
-                bodyPreview: data.bodyText?.substring(0, 500),
-                bodyText: data.bodyText, // Store full email content for AI processing
+                bodyPreview: data.bodyText?.substring(0, 500) ?? null,
+                bodyText: data.bodyText ?? null, // Store full email content for AI processing
                 hasAttachments: data.hasAttachments || false,
                 gmailLabels: data.labelIds || [],
                 processingStatus: 'PENDING',
