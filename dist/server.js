@@ -174,6 +174,10 @@ app.use('/dashboard', express_1.default.static(path_1.default.join(__dirname, '.
 app.get('/dashboard/*', (req, res) => {
     res.sendFile(path_1.default.join(__dirname, '../public/index.html'));
 });
+// Dashboard root route
+app.get('/dashboard', (req, res) => {
+    res.sendFile(path_1.default.join(__dirname, '../public/index.html'));
+});
 // Root redirect
 app.get('/', (req, res) => {
     res.redirect('/dashboard');

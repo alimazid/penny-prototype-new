@@ -150,6 +150,11 @@ app.get('/dashboard/*', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
+// Dashboard root route
+app.get('/dashboard', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/index.html'));
+});
+
 // Root redirect
 app.get('/', (req, res) => {
   res.redirect('/dashboard');
