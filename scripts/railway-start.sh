@@ -6,6 +6,9 @@
 set -e  # Exit on any error
 
 echo "🚀 Starting Penny Prototype deployment..."
+echo "📁 Current working directory: $(pwd)"
+echo "📋 Directory contents:"
+ls -la
 
 # Check if required environment variables are set
 if [ -z "$DATABASE_URL" ]; then
