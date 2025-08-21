@@ -51,6 +51,9 @@ COPY --from=builder --chown=penny:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=penny:nodejs /app/scripts ./scripts
 COPY --from=builder --chown=penny:nodejs /app/healthcheck.js ./healthcheck.js
 
+# Create logs directory and ensure proper ownership
+RUN mkdir -p /app/logs && chown -R penny:nodejs /app
+
 # Switch to non-root user
 USER penny
 
