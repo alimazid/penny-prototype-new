@@ -18,7 +18,7 @@
     "type-check": "tsc --noEmit",
     "railway:start": "sh ./scripts/railway-start.sh",
     "railway:migrate": "npx prisma migrate deploy",
-    "railway:generate": "rm -rf node_modules/.prisma && PRISMA_CLI_BINARY_TARGETS=linux-musl-openssl-3.0.x npx prisma generate",
+    "railway:generate": "npx prisma generate",
     "railway:build": "npm run build && npm run railway:generate"
   },
   "dependencies": {

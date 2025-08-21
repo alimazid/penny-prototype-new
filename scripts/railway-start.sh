@@ -20,14 +20,40 @@ fi
 
 echo "✅ Environment variables validated"
 
-# Verify Prisma client is generated with correct binary targets
-echo "🔄 Verifying Prisma client..."
-if [ ! -d "node_modules/.prisma/client" ]; then
-  echo "⚠️  Prisma client not found, regenerating with Railway targets..."
-  export PRISMA_CLI_BINARY_TARGETS="linux-musl-openssl-3.0.x"
-  npx prisma generate
+# Verify OpenSSL library availability
+echo "🔄 Verifying OpenSSL libraries..."
+if command -v openssl >/dev/null 2>&1; then
+  echo "✅ OpenSSL command available: $(openssl version)"
 else
-  echo "✅ Prisma client found"
+  echo "⚠️  OpenSSL command not found"
+fi
+
+# Check for required shared libraries
+if ldconfig -p | grep -q "libssl.so"; then
+  echo "✅ OpenSSL shared libraries found"
+else
+  echo "⚠️  OpenSSL shared libraries not found in ldconfig"
+fi
+
+# Verify Prisma client exists and test loading
+echo "🔄 Verifying Prisma client..."
+if [ -d "node_modules/.prisma/client" ]; then
+  echo "✅ Prisma client directory found"
+  # Test if Prisma client can load
+  node -e "
+    try {
+      const { PrismaClient } = require('@prisma/client');
+      console.log('✅ Prisma client loaded successfully');
+    } catch (error) {
+      console.error('❌ Prisma client loading failed:', error.message);
+      if (error.message.includes('libssl')) {
+        console.log('🔄 OpenSSL compatibility issue detected');
+        process.exit(1);
+      }
+    }
+  " || echo "⚠️  Prisma client test failed, but continuing..."
+else
+  echo "⚠️  Prisma client directory not found"
 fi
 
 # Run database migrations
