@@ -1,0 +1,61 @@
+import { createClient } from 'redis';
+declare let redisClient: ReturnType<typeof createClient> | null;
+declare const initializeRedis: () => Promise<ReturnType<typeof createClient>>;
+declare const checkRedisHealth: () => Promise<boolean>;
+declare const disconnectRedis: () => Promise<void>;
+declare const RedisOperations: {
+    set(key: string, value: string, ttl?: number): Promise<void>;
+    get(key: string): Promise<string | null>;
+    del(key: string): Promise<number>;
+    exists(key: string): Promise<boolean>;
+    expire(key: string, seconds: number): Promise<boolean>;
+    ttl(key: string): Promise<number>;
+    setJSON(key: string, value: any, ttl?: number): Promise<void>;
+    getJSON<T>(key: string): Promise<T | null>;
+    hSet(key: string, field: string, value: string): Promise<number>;
+    hGet(key: string, field: string): Promise<string | undefined>;
+    hGetAll(key: string): Promise<Record<string, string>>;
+    hDel(key: string, field: string): Promise<number>;
+    lPush(key: string, ...values: string[]): Promise<number>;
+    rPush(key: string, ...values: string[]): Promise<number>;
+    lPop(key: string): Promise<string | null>;
+    rPop(key: string): Promise<string | null>;
+    lLen(key: string): Promise<number>;
+    lRange(key: string, start: number, stop: number): Promise<string[]>;
+    sAdd(key: string, ...members: string[]): Promise<number>;
+    sRem(key: string, ...members: string[]): Promise<number>;
+    sMembers(key: string): Promise<string[]>;
+    sIsMember(key: string, member: string): Promise<boolean>;
+    incr(key: string): Promise<number>;
+    incrBy(key: string, increment: number): Promise<number>;
+    decr(key: string): Promise<number>;
+    decrBy(key: string, decrement: number): Promise<number>;
+    keys(pattern: string): Promise<string[]>;
+    scan(cursor: number, pattern?: string, count?: number): Promise<{
+        cursor: number;
+        keys: string[];
+    }>;
+    cacheSet(key: string, value: any, ttlSeconds?: number): Promise<void>;
+    cacheGet<T>(key: string): Promise<T | null>;
+    cacheInvalidate(pattern: string): Promise<number>;
+    setSession(sessionId: string, data: any, ttlSeconds?: number): Promise<void>;
+    getSession<T>(sessionId: string): Promise<T | null>;
+    deleteSession(sessionId: string): Promise<number>;
+    checkRateLimit(identifier: string, limit: number, windowSeconds: number): Promise<{
+        allowed: boolean;
+        remaining: number;
+        resetTime: number;
+    }>;
+};
+export declare const redisConnection: {
+    host: string;
+    port: number;
+    password: string | undefined;
+    db: number;
+    maxRetriesPerRequest: null;
+    retryDelayOnFailover: number;
+    enableReadyCheck: boolean;
+    maxLoadingTimeout: number;
+};
+export { initializeRedis, checkRedisHealth, disconnectRedis, RedisOperations, redisClient, };
+//# sourceMappingURL=redis.d.ts.map
