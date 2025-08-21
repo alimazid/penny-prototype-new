@@ -97,7 +97,7 @@ const disconnectDatabase = async (): Promise<void> => {
 
 // Database transaction helper
 const runTransaction = async <T>(
-  fn: (prisma: PrismaClient) => Promise<T>
+  fn: (prisma: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>) => Promise<T>
 ): Promise<T> => {
   return await prisma.$transaction(fn);
 };
@@ -115,7 +115,7 @@ const DatabaseOperations = {
     return await prisma.user.create({
       data: {
         email: data.email,
-        displayName: data.displayName,
+        displayName: data.displayName ?? null,
         language: data.language || 'en',
         currency: data.currency || 'USD',
         timezone: data.timezone || 'UTC',
@@ -214,7 +214,7 @@ const DatabaseOperations = {
       where: { id: emailId },
       data: {
         processingStatus: status,
-        errorMessage,
+        errorMessage: errorMessage ?? null,
         updatedAt: new Date(),
       },
     });
@@ -351,7 +351,7 @@ const DatabaseOperations = {
     });
   },
 
-  async createProcessedEmail(data: {
+  async createProcessedEmailRecord(data: {
     gmailId: string;
     emailAccountId: string;
     subject?: string;
@@ -370,7 +370,7 @@ const DatabaseOperations = {
         gmailId: data.gmailId,
         accountId: data.emailAccountId,
         messageId: `msg_${data.gmailId}`,
-        threadId: data.threadId,
+        threadId: data.threadId ?? null,
         subject: data.subject || '',
         fromAddress: data.sender || '',
         toAddresses: data.recipient ? [data.recipient] : [],
@@ -405,14 +405,8 @@ const DatabaseOperations = {
     return await prisma.processedEmail.update({
       where: { id: emailId },
       data: {
-        classification: {
-          isFinancial: data.isFinancial,
-          category: data.category,
-          subcategory: data.subcategory,
-          language: data.language,
-          currency: data.currency,
-          reasoning: data.aiReasoning,
-        },
+        classification: data.category as any,
+        language: data.language,
         confidenceScore: data.confidence,
         processingStatus: data.status === 'classified' ? 'CLASSIFIED' : 'COMPLETED',
       },
