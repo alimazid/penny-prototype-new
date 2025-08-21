@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # Production startup script for Railway deployment
 # This script runs database migrations and starts the application
