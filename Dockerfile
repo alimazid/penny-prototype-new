@@ -49,6 +49,7 @@ COPY --from=builder --chown=penny:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=penny:nodejs /app/package.json ./package.json
 COPY --from=builder --chown=penny:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=penny:nodejs /app/scripts ./scripts
+COPY --from=builder --chown=penny:nodejs /app/public ./public
 COPY --from=builder --chown=penny:nodejs /app/healthcheck.js ./healthcheck.js
 
 # Create logs directory and ensure proper ownership
