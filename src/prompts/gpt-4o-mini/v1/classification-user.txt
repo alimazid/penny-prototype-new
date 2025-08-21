@@ -1,0 +1,49 @@
+Analyze this email and determine if it contains financial information. Respond with a JSON object.
+
+EMAIL DETAILS:
+From: {{sender}}
+Subject: {{subject}}
+Body: {{body}}
+
+SUPPORTED CATEGORIES:
+- banking: Bank account transactions, statements, notifications (includes: transacción bancaria, notificación bancaria, estado de cuenta)
+- credit_card: Credit card transactions, statements, payments (includes: tarjeta de crédito, notificación de consumo, transacción con tarjeta)
+- investment: Investment account updates, trading confirmations (includes: inversiones, trading, bolsa)
+- payment: Online purchases, payment confirmations, receipts (includes: compra, pago, recibo)
+- subscription: Recurring subscription payments, renewals (includes: suscripción, renovación)
+- bill: Utility bills, insurance bills, loan payments (includes: factura, servicio, cuota)
+- tax: Tax documents, refunds, notices (includes: impuestos, declaración, DGII)
+- insurance: Insurance communications, claims, premiums (includes: seguro, póliza, prima)
+- loan: Loan payments, mortgage statements (includes: préstamo, hipoteca, cuota)
+- other_financial: Other financial communications
+
+SUPPORTED LANGUAGES: {{supportedLanguages}}
+SUPPORTED CURRENCIES: {{supportedCurrencies}}
+
+SPANISH FINANCIAL TERMS TO RECOGNIZE:
+- Credit Card: "tarjeta de crédito", "tarjeta", "TC", "consumo"
+- Transaction: "transacción", "movimiento", "operación", "consumo"
+- Amount: "monto", "importe", "valor", "total"
+- Date: "fecha", "día", "cuando"
+- Merchant: "establecimiento", "comercio", "negocio", "empresa"
+- Account: "cuenta", "tarjeta terminada en", "últimos dígitos"
+- Balance: "saldo", "disponible", "balance"
+
+DOMINICAN BANKING INSTITUTIONS: BHD León, Banreservas, Popular, Scotiabank, BanBHD, Citibank
+
+CURRENCY FORMATS:
+- Dominican Peso: "RD$", "DOP$", "$ DOP", "pesos", numbers with "," as thousands separator
+- US Dollar: "$", "USD", "dólares"
+
+CRITICAL: You MUST respond with ONLY valid JSON. No explanatory text before or after. Just the JSON object.
+
+Response format (JSON only):
+{
+  "isFinancial": boolean,
+  "confidence": number (0-1),
+  "category": string (from list above or "non_financial"),
+  "subcategory": string (optional, more specific classification),
+  "language": string (ISO 639-1 code),
+  "currency": string (ISO 4217 code if detected),
+  "reasoning": string (brief explanation)
+}

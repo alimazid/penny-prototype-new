@@ -1,0 +1,285 @@
+// ===========================================
+// PENNY PROTOTYPE DATABASE SCHEMA
+// ===========================================
+// Simplified schema for validating the email processing pipeline
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ===========================================
+// USER MANAGEMENT
+// ===========================================
+
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  displayName String?
+  language    String   @default("en")
+  currency    String   @default("USD")
+  timezone    String   @default("UTC")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  emailAccounts EmailAccount[]
+  auditLogs     AuditLog[]
+
+  @@map("users")
+}
+
+// ===========================================
+// EMAIL ACCOUNT MANAGEMENT
+// ===========================================
+
+model EmailAccount {
+  id              String    @id @default(cuid())
+  userId          String
+  gmailAddress    String
+  accessToken     String // Encrypted in production
+  refreshToken    String // Encrypted in production  
+  tokenExpiresAt  DateTime?
+  isConnected     Boolean   @default(true)
+  lastSyncAt      DateTime?
+  syncSettings    Json      @default("{}")
+  errorCount      Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relationships
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  processedEmails ProcessedEmail[]
+
+  @@unique([userId, gmailAddress])
+  @@map("email_accounts")
+}
+
+// ===========================================
+// EMAIL PROCESSING
+// ===========================================
+
+enum EmailClassification {
+  BANKING
+  CREDIT_CARD
+  INVESTMENT
+  PAYMENT
+  BILL
+  INSURANCE
+  TAX
+  LOAN
+  OTHER
+  UNCLASSIFIED
+}
+
+enum ProcessingStatus {
+  PENDING
+  PROCESSING
+  CLASSIFIED
+  EXTRACTED
+  COMPLETED
+  FAILED
+  MANUAL_REVIEW
+}
+
+model ProcessedEmail {
+  id                String               @id @default(cuid())
+  accountId         String
+  gmailId           String               @unique
+  messageId         String
+  threadId          String?
+  subject           String
+  fromAddress       String
+  toAddresses       Json                 @default("[]")
+  receivedAt        DateTime
+  contentHash       String // For duplicate detection
+  bodyPreview       String?
+  bodyText          String? // Full email content for AI processing
+  classification    EmailClassification  @default(UNCLASSIFIED)
+  confidenceScore   Decimal?             @db.Decimal(3, 2) // 0.00 to 1.00
+  processingStatus  ProcessingStatus     @default(PENDING)
+  isValidated       Boolean              @default(false)
+  hasAttachments    Boolean              @default(false)
+  language          String               @default("en")
+  gmailLabels       Json                 @default("[]")
+  errorMessage      String?
+  processingTimeMs  Int?                 // Time taken to process
+  retryCount        Int                  @default(0)
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  // Relationships
+  account       EmailAccount   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  extractedData ExtractedData?
+  auditLogs     AuditLog[]
+
+  @@index([accountId, processingStatus])
+  @@index([classification, receivedAt])
+  @@index([gmailId])
+  @@map("processed_emails")
+}
+
+// ===========================================
+// FINANCIAL DATA EXTRACTION
+// ===========================================
+
+enum TransactionType {
+  DEBIT
+  CREDIT
+  PAYMENT
+  TRANSFER
+  FEE
+  INTEREST
+  DIVIDEND
+  UNKNOWN
+}
+
+model ExtractedData {
+  id                String          @id @default(cuid())
+  emailId           String          @unique
+  transactionAmount Decimal?        @db.Decimal(15, 2)
+  currency          String?
+  amountUSD         Decimal?        @db.Decimal(15, 2) // Converted amount
+  exchangeRate      Decimal?        @db.Decimal(10, 6)
+  transactionDate   DateTime?
+  merchantName      String?
+  merchantCategory  String?
+  accountNumber     String? // Masked for security
+  transactionType   TransactionType @default(UNKNOWN)
+  description       String?
+  referenceNumber   String?
+  balance           Decimal?        @db.Decimal(15, 2)
+  metadata          Json            @default("{}") // Additional extracted fields
+  extractionScore   Decimal?        @db.Decimal(3, 2) // AI confidence score
+  isValidated       Boolean         @default(false)
+  validatedBy       String? // User ID who validated
+  validatedAt       DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  // Relationships
+  email ProcessedEmail @relation(fields: [emailId], references: [id], onDelete: Cascade)
+
+  @@index([currency, transactionDate])
+  @@index([merchantName])
+  @@index([transactionDate])
+  @@map("extracted_data")
+}
+
+// ===========================================
+// AUDIT & COMPLIANCE
+// ===========================================
+
+enum AuditAction {
+  EMAIL_RECEIVED
+  EMAIL_CLASSIFIED
+  DATA_EXTRACTED
+  EMAIL_VALIDATED
+  USER_LOGIN
+  USER_LOGOUT
+  ACCOUNT_CONNECTED
+  ACCOUNT_DISCONNECTED
+  SETTINGS_UPDATED
+  ERROR_OCCURRED
+}
+
+model AuditLog {
+  id         String      @id @default(cuid())
+  userId     String?
+  emailId    String?
+  action     AuditAction
+  entityType String?
+  entityId   String?
+  oldValues  Json?
+  newValues  Json?
+  ipAddress  String?
+  userAgent  String?
+  sessionId  String?
+  metadata   Json        @default("{}")
+  createdAt  DateTime    @default(now())
+
+  // Relationships
+  user  User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  email ProcessedEmail? @relation(fields: [emailId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
+  @@index([emailId])
+  @@map("audit_logs")
+}
+
+// ===========================================
+// SYSTEM CONFIGURATION
+// ===========================================
+
+model SystemConfig {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  category  String   @default("general")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("system_config")
+}
+
+// ===========================================
+// QUEUE MANAGEMENT (for monitoring)
+// ===========================================
+
+enum JobStatus {
+  WAITING
+  ACTIVE
+  COMPLETED
+  FAILED
+  DELAYED
+  PAUSED
+}
+
+model QueueJob {
+  id          String    @id @default(cuid())
+  jobId       String    @unique // BullMQ job ID
+  queueName   String
+  jobType     String
+  status      JobStatus @default(WAITING)
+  priority    Int       @default(0)
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(3)
+  data        Json      @default("{}")
+  progress    Int       @default(0) // 0-100
+  result      Json?
+  error       String?
+  startedAt   DateTime?
+  completedAt DateTime?
+  failedAt    DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([queueName, status])
+  @@index([jobType, createdAt])
+  @@map("queue_jobs")
+}
+
+// ===========================================
+// PERFORMANCE METRICS
+// ===========================================
+
+model PerformanceMetric {
+  id           String   @id @default(cuid())
+  metricName   String
+  metricValue  Decimal  @db.Decimal(15, 6)
+  metricUnit   String   @default("ms")
+  category     String   @default("processing")
+  tags         Json     @default("{}")
+  recordedAt   DateTime @default(now())
+
+  @@index([metricName, recordedAt])
+  @@index([category, recordedAt])
+  @@map("performance_metrics")
+}

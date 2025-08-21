@@ -1,0 +1,1338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Penny Prototype - AI Financial Email Monitor</title>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <style>
+        [x-cloak] { display: none !important; }
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        .status-healthy { background-color: #10b981; }
+        .status-degraded { background-color: #f59e0b; }
+        .status-error { background-color: #ef4444; }
+        
+        .animate-pulse-slow {
+            animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen">
+    <div x-data="pennyDashboard()" x-init="init()" x-cloak class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-white mb-2">
+                💰 Penny Prototype
+            </h1>
+            <p class="text-xl text-white opacity-90">
+                AI-Powered Financial Email Monitoring System
+            </p>
+            <div class="mt-4 flex justify-center space-x-4">
+                <span class="px-3 py-1 bg-white bg-opacity-20 rounded-full text-white text-sm">
+                    <span class="status-dot" :class="systemStatus.api === 'healthy' ? 'status-healthy' : 'status-error'"></span>
+                    API: <span x-text="systemStatus.api"></span>
+                </span>
+                <span class="px-3 py-1 bg-white bg-opacity-20 rounded-full text-white text-sm">
+                    <span class="status-dot" :class="systemStatus.database === 'healthy' ? 'status-healthy' : 'status-error'"></span>
+                    Database: <span x-text="systemStatus.database"></span>
+                </span>
+                <span class="px-3 py-1 bg-white bg-opacity-20 rounded-full text-white text-sm">
+                    <span class="status-dot" :class="systemStatus.redis === 'healthy' ? 'status-healthy' : 'status-error'"></span>
+                    Redis: <span x-text="systemStatus.redis"></span>
+                </span>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="flex justify-center mb-8">
+            <div class="card rounded-lg p-1 flex space-x-1">
+                <button @click="activeTab = 'overview'" 
+                        :class="activeTab === 'overview' ? 'bg-blue-500 text-white' : 'text-gray-700 hover:bg-gray-100'"
+                        class="px-4 py-2 rounded-md transition-colors">
+                    📊 Overview
+                </button>
+                <button @click="activeTab = 'ai-test'" 
+                        :class="activeTab === 'ai-test' ? 'bg-blue-500 text-white' : 'text-gray-700 hover:bg-gray-100'"
+                        class="px-4 py-2 rounded-md transition-colors">
+                    🤖 AI Testing
+                </button>
+                <button @click="activeTab = 'emails'" 
+                        :class="activeTab === 'emails' ? 'bg-blue-500 text-white' : 'text-gray-700 hover:bg-gray-100'"
+                        class="px-4 py-2 rounded-md transition-colors">
+                    📧 Email Monitor
+                </button>
+                <button @click="activeTab = 'oauth'" 
+                        :class="activeTab === 'oauth' ? 'bg-blue-500 text-white' : 'text-gray-700 hover:bg-gray-100'"
+                        class="px-4 py-2 rounded-md transition-colors">
+                    🔐 OAuth Testing
+                </button>
+            </div>
+        </div>
+
+        <!-- Overview Tab -->
+        <div x-show="activeTab === 'overview'" class="space-y-6">
+            <!-- System Stats -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="card rounded-lg p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">📈 System Performance</h3>
+                    <div class="text-3xl font-bold text-blue-600" x-text="stats.uptime || 'Loading...'"></div>
+                    <p class="text-gray-600 text-sm">Server Uptime</p>
+                </div>
+                <div class="card rounded-lg p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">🤖 AI Classification</h3>
+                    <div class="text-3xl font-bold text-green-600">
+                        <span x-text="config.features?.aiClassification ? '✅' : '❌'"></span>
+                    </div>
+                    <p class="text-gray-600 text-sm">OpenAI Integration</p>
+                </div>
+                <div class="card rounded-lg p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">📱 WebSocket</h3>
+                    <div class="text-3xl font-bold" :class="wsConnected ? 'text-green-600' : 'text-red-600'">
+                        <span x-text="wsConnected ? '🟢 Connected' : '🔴 Disconnected'"></span>
+                    </div>
+                    <p class="text-gray-600 text-sm">Real-time Updates</p>
+                </div>
+            </div>
+
+            <!-- Configuration Info -->
+            <div class="card rounded-lg p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">⚙️ System Configuration</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <h4 class="font-medium text-gray-700 mb-2">Features</h4>
+                        <ul class="space-y-1 text-sm">
+                            <li><span x-text="config.features?.aiClassification ? '✅' : '❌'"></span> AI Classification</li>
+                            <li><span x-text="config.features?.gmailIntegration ? '✅' : '❌'"></span> Gmail Integration</li>
+                            <li><span x-text="config.features?.webhooks ? '✅' : '❌'"></span> Webhooks</li>
+                            <li><span x-text="config.features?.realTimeUpdates ? '✅' : '❌'"></span> Real-time Updates</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-medium text-gray-700 mb-2">Settings</h4>
+                        <ul class="space-y-1 text-sm">
+                            <li><strong>Environment:</strong> <span x-text="config.environment"></span></li>
+                            <li><strong>Max Emails/Batch:</strong> <span x-text="config.settings?.maxEmailsPerBatch"></span></li>
+                            <li><strong>Languages:</strong> <span x-text="config.settings?.supportedLanguages?.join(', ')"></span></li>
+                            <li><strong>Currencies:</strong> <span x-text="config.settings?.supportedCurrencies?.join(', ')"></span></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Testing Tab -->
+        <div x-show="activeTab === 'ai-test'" class="space-y-6">
+            <div class="card rounded-lg p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">🤖 Test OpenAI Classification</h3>
+                
+                <!-- Sample Email Input -->
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Email Subject</label>
+                        <input x-model="testEmail.subject" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                               placeholder="Transaction Alert: $45.99 at Amazon">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Email Body</label>
+                        <textarea x-model="testEmail.body" 
+                                  rows="6"
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  placeholder="Enter email content here..."></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Sender Email</label>
+                        <input x-model="testEmail.sender" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                               placeholder="alerts@bankofamerica.com">
+                    </div>
+                    
+                    <div class="flex space-x-3">
+                        <button @click="testOpenAI()" 
+                                :disabled="aiTesting"
+                                class="bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white px-4 py-2 rounded-md transition-colors">
+                            <span x-show="!aiTesting">🧪 Test AI Classification</span>
+                            <span x-show="aiTesting" class="animate-pulse">🔄 Processing...</span>
+                        </button>
+                        <button @click="useDefaultEmail()" 
+                                class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md transition-colors">
+                            📝 Use Sample Email
+                        </button>
+                    </div>
+                </div>
+
+                <!-- AI Results -->
+                <div x-show="aiResult" class="mt-6 p-4 bg-gray-50 rounded-lg">
+                    <h4 class="font-medium text-gray-800 mb-3">🤖 AI Analysis Results</h4>
+                    
+                    <!-- Classification -->
+                    <div x-show="aiResult?.classification" class="mb-4">
+                        <h5 class="font-medium text-gray-700 mb-2">📊 Classification</h5>
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div><strong>Financial:</strong> <span :class="aiResult.classification?.isFinancial ? 'text-green-600' : 'text-red-600'" x-text="aiResult.classification?.isFinancial ? 'Yes ✅' : 'No ❌'"></span></div>
+                            <div><strong>Confidence:</strong> <span x-text="Math.round((aiResult.classification?.confidence || 0) * 100) + '%'"></span></div>
+                            <div><strong>Category:</strong> <span x-text="aiResult.classification?.category"></span></div>
+                            <div><strong>Language:</strong> <span x-text="aiResult.classification?.language"></span></div>
+                        </div>
+                        <div class="mt-2">
+                            <strong>Reasoning:</strong> <span class="text-gray-600" x-text="aiResult.classification?.reasoning"></span>
+                        </div>
+                    </div>
+
+                    <!-- Extraction -->
+                    <div x-show="aiResult?.extraction && aiResult.extraction.confidence > 0" class="mb-4">
+                        <h5 class="font-medium text-gray-700 mb-2">💰 Data Extraction</h5>
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div><strong>Amount:</strong> <span x-text="aiResult.extraction?.currency + (aiResult.extraction?.amount || 'N/A')"></span></div>
+                            <div><strong>Date:</strong> <span x-text="aiResult.extraction?.date || 'N/A'"></span></div>
+                            <div><strong>Merchant:</strong> <span x-text="aiResult.extraction?.merchantName || 'N/A'"></span></div>
+                            <div><strong>Type:</strong> <span x-text="aiResult.extraction?.transactionType || 'N/A'"></span></div>
+                            <div><strong>Account:</strong> <span x-text="aiResult.extraction?.accountNumber || 'N/A'"></span></div>
+                            <div><strong>Confidence:</strong> <span x-text="Math.round((aiResult.extraction?.confidence || 0) * 100) + '%'"></span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Email Monitor Tab -->
+        <div x-show="activeTab === 'emails'" class="space-y-6">
+            <div class="card rounded-lg p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800">📧 Real-time Email Monitor</h3>
+                    <div class="flex space-x-2">
+                        <button @click="generateSampleEmails()" 
+                                :disabled="generating"
+                                class="bg-green-500 hover:bg-green-600 disabled:opacity-50 text-white px-3 py-1 rounded text-sm transition-colors">
+                            <span x-show="!generating">✨ Generate Sample</span>
+                            <span x-show="generating" class="animate-pulse">⏳ Generating...</span>
+                        </button>
+                        <button @click="clearTestData()" 
+                                class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm transition-colors">
+                            🗑️ Clear Data
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Account Selection and Monitoring Controls -->
+                <div class="mb-6 p-4 bg-gray-50 rounded-lg">
+                    <h4 class="font-medium text-gray-800 mb-3">📬 Email Account Monitoring</h4>
+                    
+                    <!-- Account Selector -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Select Gmail Account</label>
+                            <select x-model="selectedAccountId" 
+                                    @change="onAccountChange()"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="">Choose an account...</option>
+                                <template x-for="account in authStatus.accounts" :key="account.id">
+                                    <option :value="account.id" x-text="account.email"></option>
+                                </template>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Monitoring Status</label>
+                            <div class="px-3 py-2 rounded-md border" :class="monitoringStatus.active ? 'bg-green-50 border-green-200 text-green-700' : 'bg-gray-50 border-gray-200 text-gray-600'">
+                                <span x-text="monitoringStatus.active ? '🟢 Active' : '⚪ Inactive'"></span>
+                                <span x-show="monitoringStatus.active" class="text-xs ml-2" x-text="'(Started: ' + new Date(monitoringStatus.startedAt).toLocaleTimeString() + ')'"></span>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Controls</label>
+                            <div class="flex space-x-2">
+                                <button @click="startMonitoring()" 
+                                        :disabled="!selectedAccountId || monitoringStatus.active || monitoring.starting"
+                                        class="bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white px-3 py-1 rounded text-sm transition-colors">
+                                    <span x-show="!monitoring.starting">▶️ Start</span>
+                                    <span x-show="monitoring.starting" class="animate-pulse">⏳ Starting...</span>
+                                </button>
+                                <button @click="stopMonitoring()" 
+                                        :disabled="!monitoringStatus.active || monitoring.stopping"
+                                        class="bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white px-3 py-1 rounded text-sm transition-colors">
+                                    <span x-show="!monitoring.stopping">⏸️ Stop</span>
+                                    <span x-show="monitoring.stopping" class="animate-pulse">⏳ Stopping...</span>
+                                </button>
+                                <button @click="triggerManualSync()" 
+                                        :disabled="!monitoringStatus.active || monitoring.syncing"
+                                        class="bg-green-500 hover:bg-green-600 disabled:opacity-50 text-white px-3 py-1 rounded text-sm transition-colors">
+                                    <span x-show="!monitoring.syncing">🔄 Sync Now</span>
+                                    <span x-show="monitoring.syncing" class="animate-pulse">⏳ Syncing...</span>
+                                </button>
+                                <button @click="processAllPending()" 
+                                        :disabled="!selectedAccountId || processing.batchProcessing || getPendingEmailsCount() === 0"
+                                        class="bg-purple-500 hover:bg-purple-600 disabled:opacity-50 text-white px-3 py-1 rounded text-sm transition-colors">
+                                    <span x-show="!processing.batchProcessing">🤖 Process All (<span x-text="getPendingEmailsCount()"></span>)</span>
+                                    <span x-show="processing.batchProcessing" class="animate-pulse">⏳ Processing...</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Account Info -->
+                    <div x-show="selectedAccountId" class="text-sm text-gray-600">
+                        <template x-for="account in authStatus.accounts" :key="account.id">
+                            <div x-show="account.id === selectedAccountId">
+                                📧 <strong x-text="account.email"></strong> - 
+                                Last sync: <span x-text="account.lastSync ? new Date(account.lastSync).toLocaleString() : 'Never'"></span>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- WebSocket Status -->
+                <div class="mb-4 p-3 rounded-lg" :class="wsConnected ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'">
+                    <div class="flex items-center">
+                        <span class="status-dot" :class="wsConnected ? 'status-healthy animate-pulse-slow' : 'status-error'"></span>
+                        <span class="font-medium" x-text="wsConnected ? 'Real-time monitoring active' : 'Real-time monitoring disconnected'"></span>
+                    </div>
+                </div>
+
+                <!-- Real-time Updates -->
+                <div x-show="realtimeUpdates.length > 0" class="mb-4">
+                    <h4 class="font-medium text-gray-700 mb-2">📡 Real-time Updates</h4>
+                    <div class="space-y-2 max-h-48 overflow-y-auto">
+                        <template x-for="(update, index) in realtimeUpdates.slice(-10)" :key="update?.timestamp || index">
+                            <div class="text-sm p-2 bg-blue-50 border border-blue-200 rounded">
+                                <span class="font-medium" x-text="update?.timestamp ? new Date(update.timestamp).toLocaleTimeString() : ''"></span>:
+                                <span x-text="update?.message || 'Update message'"></span>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Processing Statistics -->
+                <div x-show="selectedAccountId" class="mb-4 grid grid-cols-1 md:grid-cols-5 gap-4">
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                        <div class="text-2xl font-bold text-blue-600" x-text="processingStats.received"></div>
+                        <div class="text-sm text-blue-700">Emails Received</div>
+                    </div>
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+                        <div class="text-2xl font-bold text-green-600" x-text="processingStats.classified"></div>
+                        <div class="text-sm text-green-700">AI Classified</div>
+                    </div>
+                    <div class="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                        <div class="text-2xl font-bold text-orange-600" x-text="processingStats.financial"></div>
+                        <div class="text-sm text-orange-700">Financial Emails</div>
+                    </div>
+                    <div class="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                        <div class="text-2xl font-bold text-purple-600" x-text="processingStats.extracted"></div>
+                        <div class="text-sm text-purple-700">Data Extracted</div>
+                    </div>
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                        <div class="text-2xl font-bold text-yellow-600" x-text="processingStats.openaiCalls || 0"></div>
+                        <div class="text-sm text-yellow-700">OpenAI Calls</div>
+                    </div>
+                </div>
+
+                <!-- Email List with AI Results -->
+                <div class="mt-4">
+                    <h4 class="font-medium text-gray-700 mb-2">📋 Recent Emails & AI Processing Results</h4>
+                    <div x-show="emails.length === 0" class="text-gray-500 text-center py-4">
+                        <div x-show="!selectedAccountId">Please select a Gmail account to start monitoring.</div>
+                        <div x-show="selectedAccountId && !monitoringStatus.active">Click "Start" to begin monitoring for new emails.</div>
+                        <div x-show="selectedAccountId && monitoringStatus.active">Monitoring active - waiting for new emails...</div>
+                    </div>
+                    <div x-show="emails.length > 0" class="space-y-3">
+                        <template x-for="email in emails.slice(0, 15)" :key="email.id">
+                            <div class="border border-gray-200 rounded-lg overflow-hidden">
+                                <!-- Email Header -->
+                                <div class="p-3 bg-gray-50 border-b border-gray-200">
+                                    <div class="flex justify-between items-start">
+                                        <div class="flex-1">
+                                            <div class="font-medium text-gray-800" x-text="email.subject"></div>
+                                            <div class="text-sm text-gray-600">
+                                                From: <span x-text="email.sender"></span>
+                                            </div>
+                                            <div class="text-xs text-gray-500" x-text="new Date(email.receivedAt).toLocaleString()"></div>
+                                        </div>
+                                        <div class="flex items-center space-x-2">
+                                            <span class="px-2 py-1 text-xs rounded-full" 
+                                                  :class="email.processingStatus === 'COMPLETED' ? 'bg-green-100 text-green-800' : 
+                                                         email.processingStatus === 'PROCESSING' ? 'bg-yellow-100 text-yellow-800' : 
+                                                         email.processingStatus === 'FAILED' ? 'bg-red-100 text-red-800' : 
+                                                         'bg-gray-100 text-gray-800'"
+                                                  x-text="email.processingStatus || 'PENDING'"></span>
+                                            <button x-show="email.processingStatus === 'PENDING' || email.processingStatus === 'FAILED'"
+                                                    @click="processEmailManually(email.id)"
+                                                    :disabled="processing[email.id]"
+                                                    class="px-2 py-1 text-xs bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white rounded transition-colors">
+                                                <span x-show="!processing[email.id]">🤖 Process</span>
+                                                <span x-show="processing[email.id]" class="animate-pulse">⏳ Processing...</span>
+                                            </button>
+                                            <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800" x-text="email.id.substring(0, 8)"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- AI Processing Results -->
+                                <div x-show="email.classification !== 'UNCLASSIFIED' || email.extractedData" class="p-3">
+                                    
+                                    <!-- AI Classification -->
+                                    <div x-show="email.classification && email.classification !== 'UNCLASSIFIED'" class="mb-3">
+                                        <h5 class="font-medium text-gray-700 mb-2">🤖 AI Classification</h5>
+                                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                                            <div>
+                                                <span class="font-medium">Financial:</span>
+                                                <span :class="['BANKING', 'CREDIT_CARD', 'INVESTMENT', 'PAYMENT', 'BILL', 'INSURANCE'].includes(email.classification) ? 'text-green-600' : 'text-red-600'" 
+                                                      x-text="['BANKING', 'CREDIT_CARD', 'INVESTMENT', 'PAYMENT', 'BILL', 'INSURANCE'].includes(email.classification) ? 'Yes ✅' : 'No ❌'"></span>
+                                            </div>
+                                            <div>
+                                                <span class="font-medium">Category:</span>
+                                                <span x-text="email.classification || 'N/A'"></span>
+                                            </div>
+                                            <div>
+                                                <span class="font-medium">Confidence:</span>
+                                                <span x-text="email.confidenceScore ? Math.round(parseFloat(email.confidenceScore) * 100) + '%' : 'N/A'"></span>
+                                            </div>
+                                            <div>
+                                                <span class="font-medium">Language:</span>
+                                                <span x-text="email.language || 'N/A'"></span>
+                                            </div>
+                                        </div>
+                                        <div x-show="email.errorMessage" class="mt-2 text-sm text-red-600">
+                                            <span class="font-medium">Error:</span> <span x-text="email.errorMessage"></span>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Credit Card Required Fields (ALWAYS VISIBLE for CREDIT_CARD emails) -->
+                                    <div x-show="email.classification === 'CREDIT_CARD'" class="mb-3">
+                                        <h5 class="font-medium text-gray-700 mb-2">💰 Extracted Financial Data</h5>
+                                        <div class="text-xs font-medium text-blue-600 mb-2">💳 Credit Card Transaction - Required Fields</div>
+                                        <div class="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm bg-blue-50 p-3 rounded border border-blue-200">
+                                            <div>
+                                                <span class="font-medium">Amount:</span>
+                                                <span :class="email.extractedData?.amount ? 'text-green-600' : 'text-red-600'" 
+                                                      x-text="email.extractedData?.amount ? (email.extractedData?.currency || '$') + email.extractedData.amount : '❌ Missing'"></span>
+                                            </div>
+                                            <div>
+                                                <span class="font-medium">Currency:</span>
+                                                <span :class="email.extractedData?.currency ? 'text-green-600' : 'text-red-600'" 
+                                                      x-text="email.extractedData?.currency || '❌ Missing'"></span>
+                                            </div>
+                                            <div>
+                                                <span class="font-medium">Merchant:</span>
+                                                <span :class="email.extractedData?.merchantName ? 'text-green-600' : 'text-red-600'" 
+                                                      x-text="email.extractedData?.merchantName || '❌ Missing'"></span>
+                                            </div>
+                                            <div>
+                                                <span class="font-medium">Date:</span>
+                                                <span :class="email.extractedData?.date ? 'text-green-600' : 'text-red-600'" 
+                                                      x-text="email.extractedData?.date ? new Date(email.extractedData.date).toLocaleDateString() : '❌ Missing'"></span>
+                                            </div>
+                                            <div>
+                                                <span class="font-medium">Account:</span>
+                                                <span :class="email.extractedData?.accountNumber ? 'text-green-600' : 'text-red-600'" 
+                                                      x-text="email.extractedData?.accountNumber || '❌ Missing'"></span>
+                                            </div>
+                                            <div>
+                                                <span class="font-medium">Confidence:</span>
+                                                <span :class="email.extractedData?.confidence >= 0.8 ? 'text-green-600' : email.extractedData?.confidence >= 0.5 ? 'text-yellow-600' : 'text-red-600'" 
+                                                      x-text="email.extractedData?.confidence ? Math.round(email.extractedData.confidence * 100) + '%' : 'N/A'"></span>
+                                            </div>
+                                            <div>
+                                                <span class="font-medium">Transaction Type:</span>
+                                                <span :class="email.extractedData?.transactionType ? 'text-green-600' : 'text-red-600'" 
+                                                      x-text="email.extractedData?.transactionType || '❌ Missing'"></span>
+                                            </div>
+                                            <div>
+                                                <span class="font-medium">Reference:</span>
+                                                <span :class="email.extractedData?.referenceNumber ? 'text-green-600' : 'text-red-600'" 
+                                                      x-text="email.extractedData?.referenceNumber || '❌ Missing'"></span>
+                                            </div>
+                                            <div>
+                                                <span class="font-medium">Description:</span>
+                                                <span :class="email.extractedData?.description ? 'text-green-600' : 'text-red-600'" 
+                                                      x-text="email.extractedData?.description || '❌ Missing'"></span>
+                                            </div>
+                                        </div>
+                                        <!-- Processing Status for Credit Cards -->
+                                        <div class="mt-2 text-xs">
+                                            <span class="font-medium">Processing Status:</span>
+                                            <span :class="email.processingStatus === 'COMPLETED' ? 'text-green-600' : email.processingStatus === 'FAILED' ? 'text-red-600' : 'text-yellow-600'" 
+                                                  x-text="email.processingStatus || 'PENDING'"></span>
+                                            <span x-show="email.processingStatus === 'PENDING' || email.processingStatus === 'PROCESSING'" class="text-gray-500 ml-2">
+                                                ⏳ Data extraction in progress...
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <!-- AI Data Extraction for Non-Credit Card Financial Emails -->
+                                    <div x-show="email.extractedData && email.extractedData.confidence > 0 && email.classification !== 'CREDIT_CARD'" class="mb-3">
+                                        <h5 class="font-medium text-gray-700 mb-2">💰 Extracted Financial Data</h5>
+                                        
+                                        <!-- General Extracted Data (Other Transaction Types) -->
+                                        <div x-show="email.classification !== 'CREDIT_CARD'" class="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm bg-green-50 p-2 rounded">
+                                            <div x-show="email.extractedData?.amount">
+                                                <span class="font-medium">Amount:</span>
+                                                <span x-text="(email.extractedData?.currency || '$') + (email.extractedData?.amount || 'N/A')"></span>
+                                            </div>
+                                            <div x-show="email.extractedData?.merchantName">
+                                                <span class="font-medium">Merchant:</span>
+                                                <span x-text="email.extractedData?.merchantName"></span>
+                                            </div>
+                                            <div x-show="email.extractedData?.merchantCategory">
+                                                <span class="font-medium">Category:</span>
+                                                <span x-text="email.extractedData?.merchantCategory"></span>
+                                            </div>
+                                            <div x-show="email.extractedData?.date">
+                                                <span class="font-medium">Date:</span>
+                                                <span x-text="email.extractedData?.date"></span>
+                                            </div>
+                                            <div x-show="email.extractedData?.accountNumber">
+                                                <span class="font-medium">Account:</span>
+                                                <span x-text="email.extractedData?.accountNumber"></span>
+                                            </div>
+                                            <div>
+                                                <span class="font-medium">Confidence:</span>
+                                                <span x-text="email.extractedData?.confidence ? Math.round(email.extractedData.confidence * 100) + '%' : 'N/A'"></span>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Additional Fields (if present) -->
+                                        <div x-show="email.extractedData?.transactionType || email.extractedData?.description || email.extractedData?.transactionId" 
+                                             class="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm bg-gray-50 p-2 rounded mt-2">
+                                            <div x-show="email.extractedData?.transactionType">
+                                                <span class="font-medium">Type:</span>
+                                                <span x-text="email.extractedData?.transactionType"></span>
+                                            </div>
+                                            <div x-show="email.extractedData?.description">
+                                                <span class="font-medium">Description:</span>
+                                                <span x-text="email.extractedData?.description"></span>
+                                            </div>
+                                            <div x-show="email.extractedData?.transactionId || email.extractedData?.referenceNumber">
+                                                <span class="font-medium">Transaction ID:</span>
+                                                <span x-text="email.extractedData?.transactionId || email.extractedData?.referenceNumber"></span>
+                                            </div>
+                                            <div x-show="email.extractedData?.balance">
+                                                <span class="font-medium">Balance:</span>
+                                                <span x-text="(email.extractedData?.currency || '$') + email.extractedData?.balance"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- OAuth Testing Tab -->
+        <div x-show="activeTab === 'oauth'" class="space-y-6">
+            <div class="card rounded-lg p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">🔐 Gmail OAuth Testing</h3>
+                
+                <div class="space-y-4">
+                    <!-- Auth Status -->
+                    <div class="p-4 rounded-lg" :class="authStatus.authenticated ? 'bg-green-50 border border-green-200' : 'bg-yellow-50 border border-yellow-200'">
+                        <h4 class="font-medium text-gray-800 mb-2">📊 Authentication Status</h4>
+                        <div x-show="authStatus.authenticated" class="text-green-700">
+                            ✅ <strong>Connected:</strong> <span x-text="authStatus.accounts?.length || 0"></span> account(s)
+                            <div x-show="authStatus.accounts?.length > 0" class="mt-2">
+                                <template x-for="account in authStatus.accounts" :key="account.id">
+                                    <div class="text-sm">
+                                        📧 <span x-text="account.email"></span> - <span x-text="account.user"></span>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                        <div x-show="!authStatus.authenticated" class="text-yellow-700">
+                            ⚠️ No Gmail accounts connected
+                        </div>
+                    </div>
+
+                    <!-- OAuth Actions -->
+                    <div class="flex space-x-3">
+                        <a href="/auth/google?user_id=demo" 
+                           target="_blank"
+                           class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md transition-colors inline-block">
+                            🔗 Test OAuth Flow
+                        </a>
+                        <button @click="checkAuthStatus()" 
+                                class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md transition-colors">
+                            🔄 Refresh Status
+                        </button>
+                    </div>
+
+                    <!-- OAuth Instructions -->
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h4 class="font-medium text-blue-800 mb-2">📋 OAuth Testing Instructions</h4>
+                        <ol class="text-sm text-blue-700 space-y-1">
+                            <li>1. Click "Test OAuth Flow" to start Gmail authentication</li>
+                            <li>2. You'll be redirected to Google's consent screen</li>
+                            <li>3. Grant permissions for Gmail access</li>
+                            <li>4. You'll be redirected back with an authorization code</li>
+                            <li>5. Use "Refresh Status" to check connection status</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center text-white opacity-75 mt-8">
+            <p class="text-sm">
+                🤖 Powered by OpenAI • 📧 Gmail API • ⚡ Real-time Processing
+            </p>
+            <p class="text-xs mt-1">
+                Built with TypeScript, Express.js, PostgreSQL, Redis, and WebSockets
+            </p>
+        </div>
+    </div>
+
+    <script>
+        function pennyDashboard() {
+            return {
+                // State
+                activeTab: 'overview',
+                systemStatus: { api: 'unknown', database: 'unknown', redis: 'unknown' },
+                config: {},
+                stats: {},
+                authStatus: { authenticated: false, accounts: [] },
+                
+                // AI Testing
+                testEmail: {
+                    subject: '',
+                    body: '',
+                    sender: ''
+                },
+                aiResult: null,
+                aiTesting: false,
+                
+                // Email Monitor
+                emails: [],
+                generating: false,
+                realtimeUpdates: [],
+                selectedAccountId: '',
+                monitoringStatus: {
+                    active: false,
+                    startedAt: null,
+                    accountId: null
+                },
+                monitoring: {
+                    starting: false,
+                    stopping: false,
+                    syncing: false
+                },
+                processing: {
+                    batchProcessing: false
+                },
+                processingStats: {
+                    received: 0,
+                    classified: 0,
+                    extracted: 0,
+                    financial: 0,
+                    openaiCalls: 0
+                },
+                
+                // Socket.IO
+                socket: null,
+                wsConnected: false,
+                refreshTimeout: null,
+
+                // Initialization
+                async init() {
+                    console.log('🚀 Initializing Penny Dashboard...');
+                    await this.loadSystemStatus();
+                    await this.loadConfig();
+                    await this.checkAuthStatus();
+                    this.connectWebSocket();
+                    this.useDefaultEmail();
+                    
+                    // Restore saved state from localStorage
+                    this.restoreState();
+                    
+                    // Auto-load emails and stats if account is selected
+                    if (this.selectedAccountId) {
+                        await this.loadAccountStats();
+                        await this.loadExistingEmails();
+                        
+                        // Restore monitoring status if it was active
+                        const savedMonitoring = this.getSavedState('monitoringStatus');
+                        if (savedMonitoring?.active && savedMonitoring?.accountId === this.selectedAccountId) {
+                            // Check if monitoring is actually still active on server
+                            await this.checkMonitoringStatus();
+                        }
+                    }
+                },
+
+                // LocalStorage persistence methods
+                saveState(key, value) {
+                    try {
+                        localStorage.setItem(`penny_${key}`, JSON.stringify(value));
+                    } catch (error) {
+                        console.warn('Failed to save state to localStorage:', error);
+                    }
+                },
+
+                getSavedState(key) {
+                    try {
+                        const saved = localStorage.getItem(`penny_${key}`);
+                        return saved ? JSON.parse(saved) : null;
+                    } catch (error) {
+                        console.warn('Failed to read state from localStorage:', error);
+                        return null;
+                    }
+                },
+
+                restoreState() {
+                    // Restore selected account
+                    const savedAccountId = this.getSavedState('selectedAccountId');
+                    if (savedAccountId) {
+                        this.selectedAccountId = savedAccountId;
+                        console.log('Restored selected account:', savedAccountId);
+                    }
+
+                    // Restore active tab
+                    const savedTab = this.getSavedState('activeTab');
+                    if (savedTab) {
+                        this.activeTab = savedTab;
+                    }
+
+                    // Restore monitoring status (will be verified with server)
+                    const savedMonitoring = this.getSavedState('monitoringStatus');
+                    if (savedMonitoring) {
+                        this.monitoringStatus = { ...savedMonitoring };
+                    }
+                },
+
+                async checkMonitoringStatus() {
+                    try {
+                        // If we have a selected account, check specific status
+                        if (this.selectedAccountId) {
+                            const response = await fetch(`/api/monitoring/status/${this.selectedAccountId}`);
+                            const result = await response.json();
+                            
+                            if (result.success) {
+                                this.monitoringStatus = {
+                                    active: result.isMonitoring || false,
+                                    startedAt: result.startedAt || null,
+                                    accountId: result.isMonitoring ? this.selectedAccountId : null
+                                };
+                                this.saveState('monitoringStatus', this.monitoringStatus);
+                                
+                                if (result.isMonitoring) {
+                                    this.addRealtimeUpdate('Monitoring active for selected account');
+                                }
+                            }
+                        } else {
+                            // No account selected, check for any active sessions
+                            const response = await fetch('/api/monitoring/status');
+                            const result = await response.json();
+                            
+                            if (result.success && result.activeSessions.length > 0) {
+                                // Find the first active session but don't auto-select account
+                                const activeSession = result.activeSessions[0];
+                                this.monitoringStatus = {
+                                    active: true,
+                                    startedAt: activeSession.lastChecked,
+                                    accountId: activeSession.accountId
+                                };
+                                this.addRealtimeUpdate('Found active monitoring session');
+                                
+                                // Only auto-select if no account is currently selected
+                                if (!this.selectedAccountId) {
+                                    this.selectedAccountId = activeSession.accountId;
+                                    this.saveState('selectedAccountId', this.selectedAccountId);
+                                }
+                            } else {
+                                this.monitoringStatus = {
+                                    active: false,
+                                    startedAt: null,
+                                    accountId: null
+                                };
+                            }
+                        }
+                        
+                        this.saveState('monitoringStatus', this.monitoringStatus);
+                    } catch (error) {
+                        console.error('Failed to check monitoring status:', error);
+                        // Reset monitoring status on error
+                        this.monitoringStatus = { active: false, startedAt: null, accountId: null };
+                        this.saveState('monitoringStatus', this.monitoringStatus);
+                    }
+                },
+
+                // API Calls
+                async loadSystemStatus() {
+                    try {
+                        const response = await fetch('/api/status');
+                        const data = await response.json();
+                        this.systemStatus = data.services || {};
+                        this.stats.uptime = this.formatUptime(data.uptime);
+                    } catch (error) {
+                        console.error('Failed to load system status:', error);
+                    }
+                },
+
+                async loadConfig() {
+                    try {
+                        const response = await fetch('/api/config');
+                        this.config = await response.json();
+                    } catch (error) {
+                        console.error('Failed to load config:', error);
+                    }
+                },
+
+                async checkAuthStatus() {
+                    try {
+                        const response = await fetch('/auth/status');
+                        this.authStatus = await response.json();
+                        
+                        // After checking auth, check monitoring status
+                        await this.checkMonitoringStatus();
+                    } catch (error) {
+                        console.error('Failed to check auth status:', error);
+                    }
+                },
+
+
+                async testOpenAI() {
+                    this.aiTesting = true;
+                    this.aiResult = null;
+                    
+                    try {
+                        const response = await fetch('/api/testing/test-openai', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(this.testEmail)
+                        });
+                        
+                        this.aiResult = await response.json();
+                    } catch (error) {
+                        console.error('AI test failed:', error);
+                        this.aiResult = { success: false, error: error.message };
+                    } finally {
+                        this.aiTesting = false;
+                    }
+                },
+
+                async generateSampleEmails() {
+                    this.generating = true;
+                    
+                    try {
+                        const response = await fetch('/api/testing/generate-emails', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ count: 5 })
+                        });
+                        
+                        const result = await response.json();
+                        if (result.success) {
+                            this.emails = result.emails || [];
+                            this.addRealtimeUpdate(`Generated ${result.emails?.length || 0} sample emails`);
+                        }
+                    } catch (error) {
+                        console.error('Failed to generate emails:', error);
+                        this.addRealtimeUpdate('Failed to generate sample emails');
+                    } finally {
+                        this.generating = false;
+                    }
+                },
+
+                async clearTestData() {
+                    try {
+                        // If an account is selected, only clear data for that account
+                        const url = this.selectedAccountId 
+                            ? `/api/testing/clear-data?accountId=${this.selectedAccountId}`
+                            : '/api/testing/clear-data';
+                            
+                        const response = await fetch(url, { method: 'DELETE' });
+                        const result = await response.json();
+                        if (result.success) {
+                            this.emails = [];
+                            // Reset counters to zero
+                            this.processingStats = { received: 0, classified: 0, extracted: 0, financial: 0, openaiCalls: 0 };
+                            
+                            if (result.accountId) {
+                                this.addRealtimeUpdate(`Test data cleared for account ${result.accountId}`);
+                            } else {
+                                this.addRealtimeUpdate('All test data cleared successfully');
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Failed to clear data:', error);
+                        this.addRealtimeUpdate('Failed to clear test data');
+                    }
+                },
+
+                // Socket.IO Connection
+                connectWebSocket() {
+                    try {
+                        this.socket = io();
+                        
+                        this.socket.on('connect', () => {
+                            console.log('✅ Socket.IO connected');
+                            this.wsConnected = true;
+                            this.socket.emit('subscribe_email_updates');
+                            this.addRealtimeUpdate('Real-time monitoring connected');
+                        });
+                        
+                        this.socket.on('email_update', (data) => {
+                            console.log('📡 Email update received:', data);
+                            
+                            // Only process updates for the currently selected account
+                            if (this.selectedAccountId && data.accountId === this.selectedAccountId) {
+                                this.addRealtimeUpdate(`Email ${data.type}: ${data.message || data.emailId}`);
+                                
+                                // Refresh account stats and email list from server for accuracy
+                                if (data.type === 'received' || data.type === 'classified' || data.type === 'extracted' || data.type === 'completed') {
+                                    // Debounce the refresh to avoid too many calls
+                                    clearTimeout(this.refreshTimeout);
+                                    this.refreshTimeout = setTimeout(async () => {
+                                        await this.loadAccountStats();
+                                        await this.loadExistingEmails();
+                                    }, 1000); // Wait 1 second before refreshing
+                                }
+                            }
+                        });
+                        
+                        this.socket.on('email_processing', (data) => {
+                            console.log('📧 Email processing update:', data);
+                            this.addRealtimeUpdate(`Processing: ${data.message}`);
+                            
+                            // Update email in the list with processing results
+                            if (data.emailId) {
+                                const emailIndex = this.emails.findIndex(e => e.id === data.emailId);
+                                if (emailIndex >= 0) {
+                                    // Update the email with new data
+                                    if (data.classification) {
+                                        this.emails[emailIndex].classification = data.classification;
+                                        this.emails[emailIndex].confidenceScore = data.confidenceScore;
+                                        this.emails[emailIndex].processingStatus = 'CLASSIFIED';
+                                    }
+                                    if (data.extractedData) {
+                                        this.emails[emailIndex].extractedData = data.extractedData;
+                                        this.emails[emailIndex].processingStatus = 'EXTRACTED';
+                                    }
+                                    if (data.processingStatus) {
+                                        this.emails[emailIndex].processingStatus = data.processingStatus;
+                                    }
+                                    if (data.errorMessage) {
+                                        this.emails[emailIndex].errorMessage = data.errorMessage;
+                                    }
+                                    
+                                    // Update processing stats after individual email updates
+                                    this.updateProcessingStats();
+                                } else {
+                                    // Email not in current list, refresh the whole list
+                                    this.loadExistingEmails();
+                                }
+                            }
+                        });
+                        
+                        this.socket.on('connected', (data) => {
+                            console.log('📡 Server connection confirmed:', data);
+                            this.addRealtimeUpdate(data.message);
+                        });
+                        
+                        this.socket.on('disconnect', () => {
+                            console.log('❌ Socket.IO disconnected');
+                            this.wsConnected = false;
+                            this.addRealtimeUpdate('Real-time monitoring disconnected');
+                        });
+                        
+                        this.socket.on('connect_error', (error) => {
+                            console.error('Socket.IO connection error:', error);
+                            this.addRealtimeUpdate('Connection error occurred');
+                        });
+                        
+                    } catch (error) {
+                        console.error('Failed to initialize Socket.IO:', error);
+                        this.addRealtimeUpdate('Failed to initialize real-time connection');
+                    }
+                },
+
+                // Utilities
+                useDefaultEmail() {
+                    this.testEmail = {
+                        subject: 'Transaction Alert: $45.99 at Amazon',
+                        body: `Dear Customer,
+
+A transaction has been processed on your Bank of America account ending in 1234.
+
+Transaction Details:
+Amount: $45.99
+Merchant: Amazon
+Date: 7/26/2025
+Time: 10:35 AM
+Available Balance: $3,456.78
+
+If you did not authorize this transaction, please contact us immediately.
+
+Best regards,
+Bank of America Customer Service`,
+                        sender: 'alerts@bankofamerica.com'
+                    };
+                },
+
+                formatUptime(seconds) {
+                    if (!seconds) return 'Unknown';
+                    const days = Math.floor(seconds / 86400);
+                    const hours = Math.floor((seconds % 86400) / 3600);
+                    const minutes = Math.floor((seconds % 3600) / 60);
+                    
+                    if (days > 0) return `${days}d ${hours}h ${minutes}m`;
+                    if (hours > 0) return `${hours}h ${minutes}m`;
+                    return `${minutes}m`;
+                },
+
+                addRealtimeUpdate(message) {
+                    this.realtimeUpdates.push({
+                        message,
+                        timestamp: new Date().toISOString()
+                    });
+                    
+                    // Keep only last 50 updates
+                    if (this.realtimeUpdates.length > 50) {
+                        this.realtimeUpdates = this.realtimeUpdates.slice(-50);
+                    }
+                },
+
+                // Account monitoring functions
+                async onAccountChange() {
+                    console.log('Account changed to:', this.selectedAccountId);
+                    
+                    // Save selected account to localStorage
+                    this.saveState('selectedAccountId', this.selectedAccountId);
+                    
+                    if (this.monitoringStatus.active) {
+                        this.addRealtimeUpdate('Account changed - stopping current monitoring');
+                        this.stopMonitoring();
+                    }
+                    
+                    // Load existing emails and stats for the selected account
+                    if (this.selectedAccountId) {
+                        await this.loadAccountStats();
+                        await this.loadExistingEmails();
+                    } else {
+                        // Clear emails and stats when no account selected
+                        this.emails = [];
+                        this.processingStats = { received: 0, classified: 0, extracted: 0, financial: 0, openaiCalls: 0 };
+                    }
+                },
+
+                async loadAccountStats() {
+                    if (!this.selectedAccountId) return;
+
+                    try {
+                        console.log('Loading account stats for:', this.selectedAccountId);
+                        const response = await fetch(`/api/queue/stats?accountId=${this.selectedAccountId}`);
+                        const result = await response.json();
+
+                        if (result.accountId) {
+                            // Update processing stats from server data
+                            this.processingStats = {
+                                received: result.emailsReceived || 0,
+                                classified: result.aiClassified || 0,
+                                financial: result.financialEmails || 0,
+                                extracted: result.dataExtracted || 0,
+                                openaiCalls: result.openaiCalls || 0
+                            };
+                            this.addRealtimeUpdate(`Loaded stats: ${result.emailsReceived} emails, ${result.openaiCalls} AI calls`);
+                            console.log('Loaded account stats:', this.processingStats);
+                        } else {
+                            console.error('Failed to load account stats:', result.message);
+                            this.addRealtimeUpdate('Failed to load account statistics');
+                        }
+                    } catch (error) {
+                        console.error('Error loading account stats:', error);
+                        this.addRealtimeUpdate('Error loading account statistics');
+                    }
+                },
+
+                async loadExistingEmails() {
+                    if (!this.selectedAccountId) return;
+
+                    try {
+                        console.log('Loading existing emails for account:', this.selectedAccountId);
+                        const response = await fetch(`/api/monitoring/emails/${this.selectedAccountId}`);
+                        const result = await response.json();
+
+                        if (result.success) {
+                            this.emails = result.emails || [];
+                            // Don't call updateProcessingStats() here since we now load from server
+                            this.addRealtimeUpdate(`Loaded ${this.emails.length} existing emails`);
+                            console.log('Loaded emails:', this.emails);
+                        } else {
+                            console.error('Failed to load existing emails:', result.message);
+                            this.addRealtimeUpdate('Failed to load existing emails');
+                        }
+                    } catch (error) {
+                        console.error('Error loading existing emails:', error);
+                        this.addRealtimeUpdate('Error loading existing emails');
+                    }
+                },
+
+                updateProcessingStats() {
+                    const stats = { received: 0, classified: 0, extracted: 0, financial: 0 };
+                    
+                    this.emails.forEach(email => {
+                        stats.received++;
+                        
+                        // Check if email has been AI classified
+                        if (email.classification && email.classification !== 'UNCLASSIFIED') {
+                            stats.classified++;
+                            
+                            // Check if it's financial
+                            if (email.classification === 'BANKING' || email.classification === 'CREDIT_CARD' || 
+                                email.classification === 'INVESTMENT' || email.classification === 'PAYMENT' ||
+                                email.classification === 'BILL' || email.classification === 'INSURANCE') {
+                                stats.financial++;
+                            }
+                        }
+                        
+                        // Check if email has extracted data
+                        if (email.extractedData) {
+                            stats.extracted++;
+                        }
+                    });
+                    
+                    this.processingStats = stats;
+                },
+
+                async startMonitoring() {
+                    if (!this.selectedAccountId) {
+                        alert('Please select a Gmail account first');
+                        return;
+                    }
+
+                    this.monitoring.starting = true;
+                    
+                    try {
+                        const response = await fetch('/api/monitoring/start', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ accountId: this.selectedAccountId })
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (result.success) {
+                            this.monitoringStatus = {
+                                active: true,
+                                startedAt: new Date().toISOString(),
+                                accountId: this.selectedAccountId
+                            };
+                            
+                            // Save monitoring status to localStorage
+                            this.saveState('monitoringStatus', this.monitoringStatus);
+                            
+                            this.addRealtimeUpdate('Started monitoring for account: ' + this.selectedAccountId);
+                            
+                            // Load existing emails to populate the dashboard
+                            await this.loadExistingEmails();
+                        } else {
+                            alert('Failed to start monitoring: ' + result.message);
+                        }
+                    } catch (error) {
+                        console.error('Error starting monitoring:', error);
+                        alert('Failed to start monitoring');
+                    } finally {
+                        this.monitoring.starting = false;
+                    }
+                },
+
+                async stopMonitoring() {
+                    this.monitoring.stopping = true;
+                    
+                    try {
+                        const response = await fetch('/api/monitoring/stop', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ accountId: this.selectedAccountId })
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (result.success) {
+                            this.monitoringStatus = {
+                                active: false,
+                                startedAt: null,
+                                accountId: null
+                            };
+                            
+                            // Save updated monitoring status to localStorage
+                            this.saveState('monitoringStatus', this.monitoringStatus);
+                            
+                            this.addRealtimeUpdate('Stopped monitoring');
+                        } else {
+                            alert('Failed to stop monitoring: ' + result.message);
+                        }
+                    } catch (error) {
+                        console.error('Error stopping monitoring:', error);
+                        alert('Failed to stop monitoring');
+                    } finally {
+                        this.monitoring.stopping = false;
+                    }
+                },
+
+                async triggerManualSync() {
+                    if (!this.selectedAccountId) {
+                        alert('Please select a Gmail account first');
+                        return;
+                    }
+                    
+                    this.monitoring.syncing = true;
+                    
+                    try {
+                        const response = await fetch('/api/monitoring/sync', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ accountId: this.selectedAccountId })
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (result.success) {
+                            this.addRealtimeUpdate('Manual sync completed');
+                        } else {
+                            alert('Failed to trigger sync: ' + result.message);
+                        }
+                    } catch (error) {
+                        console.error('Error triggering manual sync:', error);
+                        alert('Failed to trigger manual sync');
+                    } finally {
+                        this.monitoring.syncing = false;
+                    }
+                },
+
+                // Update processing stats from WebSocket events
+                updateProcessingStats(type) {
+                    switch(type) {
+                        case 'received':
+                            this.processingStats.received++;
+                            break;
+                        case 'classified':
+                            this.processingStats.classified++;
+                            break;
+                        case 'extracted':
+                            this.processingStats.extracted++;
+                            break;
+                        case 'financial':
+                            this.processingStats.financial++;
+                            break;
+                    }
+                },
+
+                // Manual email processing functions
+                getPendingEmailsCount() {
+                    return this.emails.filter(email => email.processingStatus === 'PENDING' || email.processingStatus === 'FAILED').length;
+                },
+
+                async processEmailManually(emailId) {
+                    if (!emailId) return;
+
+                    // Initialize processing state for this email
+                    if (!this.processing[emailId]) {
+                        this.processing[emailId] = false;
+                    }
+
+                    this.processing[emailId] = true;
+                    this.addRealtimeUpdate(`Starting manual processing for email ${emailId.substring(0, 8)}...`);
+
+                    try {
+                        const response = await fetch(`/api/monitoring/process-email/${emailId}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' }
+                        });
+
+                        const result = await response.json();
+
+                        if (result.success) {
+                            this.addRealtimeUpdate(`Email ${emailId.substring(0, 8)} processed successfully`);
+                            
+                            // Update the email in the list
+                            const emailIndex = this.emails.findIndex(e => e.id === emailId);
+                            if (emailIndex !== -1) {
+                                // Refresh this specific email's data
+                                await this.refreshEmailData(emailId);
+                            }
+                            
+                            // Update statistics
+                            this.updateProcessingStats();
+                        } else {
+                            this.addRealtimeUpdate(`Failed to process email ${emailId.substring(0, 8)}: ${result.message}`);
+                        }
+                    } catch (error) {
+                        console.error('Error processing email manually:', error);
+                        this.addRealtimeUpdate(`Error processing email ${emailId.substring(0, 8)}`);
+                    } finally {
+                        this.processing[emailId] = false;
+                    }
+                },
+
+                async processAllPending() {
+                    if (!this.selectedAccountId) return;
+
+                    const pendingEmails = this.emails.filter(email => email.processingStatus === 'PENDING' || email.processingStatus === 'FAILED');
+                    if (pendingEmails.length === 0) return;
+
+                    this.processing.batchProcessing = true;
+                    this.addRealtimeUpdate(`Starting batch processing of ${pendingEmails.length} pending emails...`);
+
+                    try {
+                        const response = await fetch(`/api/monitoring/process-pending/${this.selectedAccountId}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' }
+                        });
+
+                        const result = await response.json();
+
+                        if (result.success) {
+                            this.addRealtimeUpdate(`Batch processing completed: ${result.processedCount || 0} emails processed`);
+                            
+                            // Reload all emails to get updated data
+                            await this.loadExistingEmails();
+                        } else {
+                            this.addRealtimeUpdate(`Batch processing failed: ${result.message}`);
+                        }
+                    } catch (error) {
+                        console.error('Error processing emails in batch:', error);
+                        this.addRealtimeUpdate('Error during batch processing');
+                    } finally {
+                        this.processing.batchProcessing = false;
+                    }
+                },
+
+                async refreshEmailData(emailId) {
+                    // Helper function to refresh a specific email's data
+                    try {
+                        const response = await fetch(`/api/monitoring/email/${emailId}`);
+                        const result = await response.json();
+
+                        if (result.success && result.email) {
+                            const emailIndex = this.emails.findIndex(e => e.id === emailId);
+                            if (emailIndex !== -1) {
+                                this.emails[emailIndex] = result.email;
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error refreshing email data:', error);
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+IMPORTANT: For credit_card transactions, these fields are REQUIRED and must always be populated:
+- amount (must be a valid number, convert Spanish number formats)
+- currency (must be ISO 4217 code: DOP for Dominican Peso, USD for US Dollar)
+- merchantName (must extract merchant/business name, could be in Spanish)
+- date (must be in ISO 8601 format, convert from DD/MM/YYYY or DD-MM-YYYY)
+- accountNumber (extract last 4 digits from "terminada en XXXX" or similar)
+
+If any of these required fields cannot be extracted with reasonable confidence, set confidence to 0.3 or lower but still attempt extraction.

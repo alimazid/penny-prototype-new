@@ -1,0 +1,53 @@
+Extract structured financial data from this {{category}} email. Respond with JSON only.
+
+EMAIL DETAILS:
+Subject: {{subject}}
+Body: {{body}}
+
+SPANISH/DOMINICAN EXTRACTION PATTERNS:
+- Amount patterns: "RD$1,500.00", "$1,500.00 DOP", "monto: 1500.00", "valor RD$1,500"
+- Date patterns: "DD/MM/YYYY", "DD-MM-YYYY", "YYYY-MM-DD", "DD de MONTH de YYYY"
+- Merchant patterns: Look for business names after "en:", "establecimiento:", "comercio:"
+- Account patterns: "terminada en 1234", "últimos dígitos 1234", "**** 1234"
+- Transaction ID: Look for "referencia:", "código:", "ID:", numbers/letters combination
+
+DOMINICAN MERCHANT CATEGORIES:
+- Supermercados: grocery (Nacional, Jumbo, Pola, La Sirena)
+- Restaurantes: restaurant (any food establishment)
+- Gasolineras: gas (Shell, Texaco, Esso)
+- Farmacias: pharmacy (Carol, Farmacity)
+- Tiendas: retail (various stores)
+
+SPANISH TRANSACTION TYPES MAPPING:
+- "compra" / "consumo" / "transacción" → payment
+- "retiro" / "extracción" → debit  
+- "depósito" / "abono" → credit
+- "transferencia" → transfer
+- "comisión" / "cargo" → fee
+
+Extract these fields if present:
+- amount: Numerical amount (convert Spanish number format with , as thousands separator)
+- currency: ISO 4217 currency code (DOP for Dominican Peso, USD for US Dollar)
+- date: ISO 8601 date format (convert from Spanish date formats)
+- merchantName: Merchant or payee name (preserve Spanish names)
+- accountNumber: Masked account number (last 4 digits, look for "terminada en")
+- transactionId: Transaction or reference ID (look for "referencia", "código")
+- transactionType: debit, credit, payment, transfer, fee, interest (map from Spanish terms)
+- description: Brief transaction description in Spanish if applicable
+- category: Specific category (grocery, restaurant, gas, retail, etc.){{requiredFieldsNote}}
+
+CRITICAL: You MUST respond with ONLY valid JSON. No explanatory text before or after. Just the JSON object.
+
+Response format (JSON only):
+{
+  "amount": number,
+  "currency": string,
+  "date": string,
+  "merchantName": string,
+  "accountNumber": string,
+  "transactionId": string,
+  "transactionType": string,
+  "description": string,
+  "category": string,
+  "confidence": number (0-1)
+}
