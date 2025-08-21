@@ -284,7 +284,8 @@ const parseRedisUrl = (url) => {
         };
     }
 };
-const redisUrl = process.env.REDIS_URL;
+// Try multiple Redis URL sources (Railway provides different URL formats)
+const redisUrl = process.env.REDIS_URL || process.env.REDIS_PRIVATE_URL || process.env.REDIS_PUBLIC_URL;
 const bullMQConfig = redisUrl ? parseRedisUrl(redisUrl) : {
     host: process.env.REDIS_HOST || 'localhost',
     port: parseInt(process.env.REDIS_PORT || '6379'),
@@ -294,6 +295,7 @@ const bullMQConfig = redisUrl ? parseRedisUrl(redisUrl) : {
 };
 exports.redisConnection = {
     ...bullMQConfig,
+    family: 0, // Enable dual-stack DNS lookup for Railway compatibility
     maxRetriesPerRequest: null, // Required for BullMQ
     retryDelayOnFailover: 100,
     enableReadyCheck: false,

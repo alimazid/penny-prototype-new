@@ -35,6 +35,26 @@ else
   echo "⚠️  OpenSSL shared libraries not found in ldconfig"
 fi
 
+# Test Redis DNS resolution for BullMQ compatibility
+echo "🔄 Testing Redis DNS resolution..."
+if [ -n "$REDIS_URL" ]; then
+  # Extract hostname from REDIS_URL for testing
+  REDIS_HOST=$(echo "$REDIS_URL" | sed -n 's|redis://[^@]*@\([^:]*\):.*|\1|p')
+  if [ -n "$REDIS_HOST" ]; then
+    echo "🔍 Testing DNS resolution for: $REDIS_HOST"
+    if nslookup "$REDIS_HOST" >/dev/null 2>&1; then
+      echo "✅ DNS resolution successful for $REDIS_HOST"
+    else
+      echo "⚠️  DNS resolution failed for $REDIS_HOST, but continuing..."
+      echo "📝 Using family: 0 for dual-stack DNS lookup in BullMQ"
+    fi
+  else
+    echo "⚠️  Could not extract hostname from REDIS_URL"
+  fi
+else
+  echo "⚠️  REDIS_URL not set, using localhost"
+fi
+
 # Verify Prisma client exists and test loading
 echo "🔄 Verifying Prisma client..."
 if [ -d "node_modules/.prisma/client" ]; then

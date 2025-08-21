@@ -6,7 +6,10 @@
   },
   "deploy": {
     "restartPolicyType": "ON_FAILURE",
-    "startCommand": "npm run railway:start"
+    "startCommand": "npm run railway:start",
+    "variables": {
+      "NODE_ENV": "production"
+    }
   },
   "environments": {
     "development": {

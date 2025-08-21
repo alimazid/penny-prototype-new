@@ -48,6 +48,7 @@ declare const RedisOperations: {
     }>;
 };
 export declare const redisConnection: {
+    family: number;
     maxRetriesPerRequest: any;
     retryDelayOnFailover: number;
     enableReadyCheck: boolean;
