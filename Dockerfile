@@ -5,10 +5,13 @@ FROM node:18-alpine
 WORKDIR /app
 
 # Copy package files
-COPY package.json package-lock.json* ./
+COPY package.json pnpm-lock.yaml* ./
+
+# Install pnpm
+RUN npm install -g pnpm
 
 # Install dependencies
-RUN npm ci --only=production && npm cache clean --force
+RUN pnpm install --prod --frozen-lockfile
 
 # Copy source code
 COPY . .
