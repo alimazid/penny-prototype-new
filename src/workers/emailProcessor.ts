@@ -164,15 +164,15 @@ export class EmailProcessor {
           const processedEmail = await DatabaseOperations.createProcessedEmail({
             gmailId: email.id,
             emailAccountId: emailAccount.id,
-            subject: email.subject,
-            sender: email.from,
-            recipient: email.to,
-            bodyText: email.body,
-            bodyHtml: email.bodyHtml,
-            receivedAt: email.date,
+            subject: (email as any).subject,
+            sender: (email as any).from,
+            recipient: (email as any).to,
+            bodyText: (email as any).body,
+            bodyHtml: (email as any).bodyHtml,
+            receivedAt: (email as any).date,
             threadId: email.threadId,
-            labelIds: email.labelIds,
-            hasAttachments: email.attachments && email.attachments.length > 0,
+            labelIds: (email as any).labelIds,
+            hasAttachments: (email as any).attachments && (email as any).attachments.length > 0,
             status: 'pending',
           });
 
@@ -295,10 +295,10 @@ export class EmailProcessor {
       await prisma.processedEmail.update({
         where: { id: emailId },
         data: { 
-          processingStatus: classification.isFinancial ? 'CLASSIFIED' : 'COMPLETED',
-          classification: this.mapCategoryToEnum(classification.category) as any,
-          confidenceScore: classification.confidence,
-          language: classification.language
+          processingStatus: (classification as any).isFinancial ? 'CLASSIFIED' : 'COMPLETED',
+          classification: this.mapCategoryToEnum((classification as any).category) as any,
+          confidenceScore: (classification as any).confidence,
+          language: (classification as any).language
         }
       });
 
@@ -306,16 +306,16 @@ export class EmailProcessor {
 
       // If financial, queue extraction job
       // CRITICAL: CREDIT_CARD emails MUST ALWAYS have extraction attempted
-      const shouldExtract = classification.isFinancial || 
-                           classification.category === 'credit_card' || 
-                           classification.category === 'CREDIT_CARD' ||
-                           this.mapCategoryToEnum(classification.category) === 'CREDIT_CARD';
+      const shouldExtract = (classification as any).isFinancial || 
+                           (classification as any).category === 'credit_card' || 
+                           (classification as any).category === 'CREDIT_CARD' ||
+                           this.mapCategoryToEnum((classification as any).category) === 'CREDIT_CARD';
       
       if (shouldExtract) {
-        logger.info(`Queueing extraction for ${emailId}: ${classification.category} (financial: ${classification.isFinancial})`);
+        logger.info(`Queueing extraction for ${emailId}: ${(classification as any).category} (financial: ${(classification as any).isFinancial})`);
         await this.queueExtractionJob(emailId);
       } else {
-        logger.debug(`Skipping extraction for ${emailId}: ${classification.category} (not financial)`);
+        logger.debug(`Skipping extraction for ${emailId}: ${(classification as any).category} (not financial)`);
       }
 
       await job.updateProgress(100);
@@ -327,10 +327,10 @@ export class EmailProcessor {
           type: 'classified',
           emailId,
           accountId: email.accountId,
-          message: `Classification completed: ${classification.category} (${Math.round(classification.confidence * 100)}% confidence)`,
+          message: `Classification completed: ${(classification as any).category} (${Math.round((classification as any).confidence * 100)}% confidence)`,
           data: {
             classification,
-            isFinancial: classification.isFinancial
+            isFinancial: (classification as any).isFinancial
           }
         });
         
@@ -340,7 +340,7 @@ export class EmailProcessor {
           accountId: email.accountId,
           type: 'classification_complete',
           classification,
-          message: `Email classified as ${classification.isFinancial ? 'financial' : 'non-financial'}`
+          message: `Email classified as ${(classification as any).isFinancial ? 'financial' : 'non-financial'}`
         });
       }
 
