@@ -6,9 +6,6 @@
 set -e  # Exit on any error
 
 echo "🚀 Starting Penny Prototype deployment..."
-echo "📁 Current working directory: $(pwd)"
-echo "📋 Directory contents:"
-ls -la
 
 # Check if required environment variables are set
 if [ -z "$DATABASE_URL" ]; then
@@ -23,9 +20,15 @@ fi
 
 echo "✅ Environment variables validated"
 
-# Generate Prisma client (in case it's not generated during build)
-echo "🔄 Generating Prisma client..."
-npx prisma generate
+# Verify Prisma client is generated with correct binary targets
+echo "🔄 Verifying Prisma client..."
+if [ ! -d "node_modules/.prisma/client" ]; then
+  echo "⚠️  Prisma client not found, regenerating with Railway targets..."
+  export PRISMA_CLI_BINARY_TARGETS="linux-musl-openssl-3.0.x"
+  npx prisma generate
+else
+  echo "✅ Prisma client found"
+fi
 
 # Run database migrations
 echo "🔄 Running database migrations..."
