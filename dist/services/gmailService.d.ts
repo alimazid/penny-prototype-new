@@ -49,7 +49,16 @@ export declare class GmailService {
     getEmailMessage(messageId: string): Promise<EmailMessage>;
     private extractEmailBody;
     private hasAttachments;
-    private stripHtml;
+    private convertHtmlToText;
+    private convertTablesToText;
+    private decodeHtmlEntities;
+    private cleanupTextFormatting;
+    private removeEmailFooters;
+    private debugEmailContent;
+    private payloadContainsHtml;
+    private extractRawHtml;
+    private validateContentQuality;
+    private containsFinancialKeywords;
     createLabel(name: string, color?: string): Promise<string>;
     addLabelToEmail(messageId: string, labelId: string): Promise<void>;
     removeLabelFromEmail(messageId: string, labelId: string): Promise<void>;

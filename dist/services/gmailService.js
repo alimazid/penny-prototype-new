@@ -180,8 +180,10 @@ class GmailService {
             const to = getHeader('to').split(',').map(email => email.trim());
             const dateHeader = getHeader('date');
             const messageIdHeader = getHeader('message-id');
-            // Extract body content
+            // Extract body content with enhanced debugging
             const body = this.extractEmailBody(message.payload);
+            // Enhanced content debugging and validation
+            this.debugEmailContent(messageId, subject, body, message.payload);
             // Check for attachments
             const hasAttachments = this.hasAttachments(message.payload);
             await timer.end({ success: true, hasAttachments });
@@ -209,29 +211,63 @@ class GmailService {
     extractEmailBody(payload) {
         if (!payload)
             return '';
-        // Single part message
+        // Debug MIME type detection
+        logger_1.logger.debug('=== EMAIL CONTENT EXTRACTION ===');
+        logger_1.logger.debug('Payload MIME type:', payload.mimeType);
+        logger_1.logger.debug('Has body data:', !!payload.body?.data);
+        logger_1.logger.debug('Has parts:', !!payload.parts);
+        // Single part message - now with MIME type checking
         if (payload.body?.data) {
-            return Buffer.from(payload.body.data, 'base64').toString('utf-8');
+            const rawContent = Buffer.from(payload.body.data, 'base64').toString('utf-8');
+            if (payload.mimeType === 'text/plain') {
+                logger_1.logger.debug('Single-part plain text email detected');
+                return rawContent;
+            }
+            else if (payload.mimeType === 'text/html') {
+                logger_1.logger.debug('Single-part HTML email detected - applying HTML conversion');
+                return this.convertHtmlToText(rawContent);
+            }
+            else {
+                logger_1.logger.debug('Single-part email with unknown MIME type:', payload.mimeType);
+                // Try to detect if it's HTML by content
+                if (rawContent.includes('<html') || rawContent.includes('<!DOCTYPE')) {
+                    logger_1.logger.debug('Content appears to be HTML - applying HTML conversion');
+                    return this.convertHtmlToText(rawContent);
+                }
+                return rawContent;
+            }
         }
-        // Multi-part message
+        // Multi-part message with improved prioritization
         if (payload.parts) {
-            let body = '';
+            let plainTextBody = '';
+            let htmlBody = '';
+            // First pass: collect all available content types
             for (const part of payload.parts) {
                 if (part.mimeType === 'text/plain' && part.body?.data) {
-                    body += Buffer.from(part.body.data, 'base64').toString('utf-8');
+                    plainTextBody += Buffer.from(part.body.data, 'base64').toString('utf-8');
                 }
-                else if (part.mimeType === 'text/html' && part.body?.data && !body) {
-                    // Use HTML as fallback if no plain text
-                    const htmlBody = Buffer.from(part.body.data, 'base64').toString('utf-8');
-                    body = this.stripHtml(htmlBody);
+                else if (part.mimeType === 'text/html' && part.body?.data) {
+                    htmlBody += Buffer.from(part.body.data, 'base64').toString('utf-8');
                 }
                 else if (part.parts) {
                     // Recursive for nested parts
-                    body += this.extractEmailBody(part);
+                    const nestedContent = this.extractEmailBody(part);
+                    if (nestedContent) {
+                        plainTextBody += '\n' + nestedContent;
+                    }
                 }
             }
-            return body;
+            // Prioritize plain text, fall back to HTML conversion
+            if (plainTextBody.trim()) {
+                logger_1.logger.debug('Using plain text content from multipart email');
+                return plainTextBody.trim();
+            }
+            else if (htmlBody.trim()) {
+                logger_1.logger.debug('No plain text found - converting HTML content');
+                return this.convertHtmlToText(htmlBody);
+            }
         }
+        logger_1.logger.debug('No extractable content found in email payload');
         return '';
     }
     // Check if email has attachments
@@ -243,19 +279,230 @@ class GmailService {
         }
         return false;
     }
-    // Strip HTML tags from content
-    stripHtml(html) {
-        return html
+    // Advanced HTML to text conversion for financial emails
+    convertHtmlToText(html) {
+        if (!html)
+            return '';
+        logger_1.logger.debug('Converting HTML to text, input length:', html.length);
+        // Remove unwanted elements that don't contain useful content
+        let cleanHtml = html
+            // Remove scripts, styles, and meta tags
             .replace(/<script[^>]*>.*?<\/script>/gi, '')
             .replace(/<style[^>]*>.*?<\/style>/gi, '')
-            .replace(/<[^>]*>/g, '')
+            .replace(/<meta[^>]*>/gi, '')
+            .replace(/<link[^>]*>/gi, '')
+            .replace(/<!--[\s\S]*?-->/g, '')
+            // Remove email headers and tracking elements
+            .replace(/<head[^>]*>.*?<\/head>/gi, '')
+            .replace(/<img[^>]*>/gi, '') // Remove tracking pixels
+            // Convert structural elements to text equivalents
+            .replace(/<br\s*\/?>/gi, '\n')
+            .replace(/<\/p>/gi, '\n\n')
+            .replace(/<\/div>/gi, '\n')
+            .replace(/<\/h[1-6]>/gi, '\n\n')
+            .replace(/<hr[^>]*>/gi, '\n---\n');
+        // Handle table structures (common in financial emails)
+        cleanHtml = this.convertTablesToText(cleanHtml);
+        // Remove all remaining HTML tags
+        cleanHtml = cleanHtml.replace(/<[^>]*>/g, '');
+        // Decode HTML entities
+        cleanHtml = this.decodeHtmlEntities(cleanHtml);
+        // Clean up whitespace and formatting
+        cleanHtml = this.cleanupTextFormatting(cleanHtml);
+        // Remove email footers and disclaimers (financial emails have lots of legal text)
+        cleanHtml = this.removeEmailFooters(cleanHtml);
+        logger_1.logger.debug('HTML conversion complete, output length:', cleanHtml.length);
+        logger_1.logger.debug('Converted content preview:', cleanHtml.substring(0, 200) + '...');
+        return cleanHtml;
+    }
+    // Convert HTML tables to readable text format
+    convertTablesToText(html) {
+        // Replace table rows with line breaks and cells with tabs/spaces
+        return html
+            .replace(/<\/tr>/gi, '\n')
+            .replace(/<\/td>/gi, '\t')
+            .replace(/<\/th>/gi, '\t')
+            .replace(/<table[^>]*>/gi, '\n--- TABLE START ---\n')
+            .replace(/<\/table>/gi, '\n--- TABLE END ---\n')
+            .replace(/<tbody[^>]*>/gi, '')
+            .replace(/<\/tbody>/gi, '')
+            .replace(/<thead[^>]*>/gi, '')
+            .replace(/<\/thead>/gi, '')
+            .replace(/<tr[^>]*>/gi, '')
+            .replace(/<td[^>]*>/gi, '')
+            .replace(/<th[^>]*>/gi, '');
+    }
+    // Decode common HTML entities
+    decodeHtmlEntities(text) {
+        return text
             .replace(/&nbsp;/g, ' ')
             .replace(/&amp;/g, '&')
             .replace(/&lt;/g, '<')
             .replace(/&gt;/g, '>')
             .replace(/&quot;/g, '"')
             .replace(/&#39;/g, "'")
+            .replace(/&apos;/g, "'")
+            .replace(/&cent;/g, '¢')
+            .replace(/&pound;/g, '£')
+            .replace(/&yen;/g, '¥')
+            .replace(/&euro;/g, '€')
+            .replace(/&copy;/g, '©')
+            .replace(/&reg;/g, '®')
+            .replace(/&#(\d+);/g, (match, num) => String.fromCharCode(parseInt(num, 10)))
+            .replace(/&#x([0-9a-f]+);/gi, (match, hex) => String.fromCharCode(parseInt(hex, 16)));
+    }
+    // Clean up text formatting and spacing
+    cleanupTextFormatting(text) {
+        return text
+            // Normalize line breaks
+            .replace(/\r\n/g, '\n')
+            .replace(/\r/g, '\n')
+            // Remove excessive whitespace
+            .replace(/[ \t]+/g, ' ')
+            // Limit consecutive line breaks
+            .replace(/\n{3,}/g, '\n\n')
+            // Trim lines
+            .split('\n')
+            .map(line => line.trim())
+            .join('\n')
             .trim();
+    }
+    // Remove common email footers and disclaimers
+    removeEmailFooters(text) {
+        const lines = text.split('\n');
+        const cleanLines = [];
+        let skipRemaining = false;
+        for (const line of lines) {
+            const lowerLine = line.toLowerCase();
+            // Detect footer patterns (financial emails have lots of legal disclaimers)
+            if (lowerLine.includes('unsubscribe') ||
+                lowerLine.includes('confidential') ||
+                lowerLine.includes('disclaimer') ||
+                lowerLine.includes('privacy policy') ||
+                lowerLine.includes('terms of service') ||
+                lowerLine.includes('legal notice') ||
+                lowerLine.includes('this email was sent') ||
+                lowerLine.includes('if you no longer wish') ||
+                (lowerLine.includes('©') && (lowerLine.includes('bank') || lowerLine.includes('financial')))) {
+                skipRemaining = true;
+                break;
+            }
+            cleanLines.push(line);
+        }
+        return cleanLines.join('\n').trim();
+    }
+    // Enhanced email content debugging and validation
+    debugEmailContent(messageId, subject, extractedBody, payload) {
+        // Only debug emails that might be problematic (HTML content or QIK emails)
+        const isQikEmail = subject.toLowerCase().includes('qik') ||
+            (payload.headers || []).some((h) => h.name?.toLowerCase() === 'from' && h.value?.includes('qik.do'));
+        const hasHtmlContent = this.payloadContainsHtml(payload);
+        if (isQikEmail || hasHtmlContent || extractedBody.length < 50) {
+            logger_1.logger.debug('=== ENHANCED EMAIL CONTENT DEBUG ===');
+            logger_1.logger.debug('Message ID:', messageId);
+            logger_1.logger.debug('Subject:', subject);
+            logger_1.logger.debug('Is QIK email:', isQikEmail);
+            logger_1.logger.debug('Contains HTML:', hasHtmlContent);
+            logger_1.logger.debug('Extracted body length:', extractedBody.length);
+            logger_1.logger.debug('Extracted body preview:', extractedBody.substring(0, 300) + '...');
+            // Show original HTML if present
+            if (hasHtmlContent) {
+                const originalHtml = this.extractRawHtml(payload);
+                logger_1.logger.debug('Original HTML length:', originalHtml.length);
+                logger_1.logger.debug('Original HTML preview:', originalHtml.substring(0, 300) + '...');
+            }
+            // Content quality validation
+            const qualityMetrics = this.validateContentQuality(extractedBody, subject);
+            logger_1.logger.debug('Content quality metrics:', qualityMetrics);
+            if (qualityMetrics.suspiciousContent) {
+                logger_1.logger.warn('🚨 SUSPICIOUS EMAIL CONTENT DETECTED');
+                logger_1.logger.warn('Quality score:', qualityMetrics.qualityScore);
+                logger_1.logger.warn('Issues found:', qualityMetrics.issues);
+            }
+        }
+    }
+    // Check if payload contains HTML content
+    payloadContainsHtml(payload) {
+        if (payload.mimeType === 'text/html')
+            return true;
+        if (payload.parts) {
+            return payload.parts.some((part) => part.mimeType === 'text/html' || this.payloadContainsHtml(part));
+        }
+        if (payload.body?.data) {
+            const content = Buffer.from(payload.body.data, 'base64').toString('utf-8');
+            return content.includes('<html') || content.includes('<!DOCTYPE');
+        }
+        return false;
+    }
+    // Extract raw HTML for debugging purposes
+    extractRawHtml(payload) {
+        if (payload.mimeType === 'text/html' && payload.body?.data) {
+            return Buffer.from(payload.body.data, 'base64').toString('utf-8');
+        }
+        if (payload.parts) {
+            for (const part of payload.parts) {
+                if (part.mimeType === 'text/html' && part.body?.data) {
+                    return Buffer.from(part.body.data, 'base64').toString('utf-8');
+                }
+                if (part.parts) {
+                    const nested = this.extractRawHtml(part);
+                    if (nested)
+                        return nested;
+                }
+            }
+        }
+        return '';
+    }
+    // Validate content quality and detect issues
+    validateContentQuality(content, subject) {
+        const issues = [];
+        let qualityScore = 1.0;
+        // Check for extremely short content
+        if (content.length < 20) {
+            issues.push('CONTENT_TOO_SHORT');
+            qualityScore -= 0.3;
+        }
+        // Check for HTML artifacts that weren't properly converted
+        if (content.includes('<!DOCTYPE') || content.includes('<html')) {
+            issues.push('UNCONVERTED_HTML');
+            qualityScore -= 0.4;
+        }
+        // Check for excessive HTML entities
+        const entityCount = (content.match(/&[a-zA-Z]+;/g) || []).length;
+        if (entityCount > 10) {
+            issues.push('EXCESSIVE_HTML_ENTITIES');
+            qualityScore -= 0.2;
+        }
+        // Check for financial content mismatch
+        const isFinancialSubject = subject.toLowerCase().includes('credit') ||
+            subject.toLowerCase().includes('debit') ||
+            subject.toLowerCase().includes('transaction') ||
+            subject.toLowerCase().includes('payment');
+        if (isFinancialSubject && !this.containsFinancialKeywords(content)) {
+            issues.push('MISSING_FINANCIAL_CONTENT');
+            qualityScore -= 0.3;
+        }
+        // Check for suspicious repeated patterns (indicating conversion failure)
+        const repeatedPatterns = content.match(/(.{10,})\1{2,}/g);
+        if (repeatedPatterns && repeatedPatterns.length > 0) {
+            issues.push('REPEATED_CONTENT_PATTERNS');
+            qualityScore -= 0.2;
+        }
+        return {
+            qualityScore: Math.max(0, qualityScore),
+            suspiciousContent: qualityScore < 0.7 || issues.length > 1,
+            issues
+        };
+    }
+    // Check if content contains expected financial keywords
+    containsFinancialKeywords(content) {
+        const lowerContent = content.toLowerCase();
+        const financialKeywords = [
+            'amount', 'transaction', 'payment', 'charge', 'debit', 'credit',
+            'merchant', 'account', 'balance', 'purchase', 'card', 'money',
+            'total', 'fee', 'cost', 'price', 'dollar', 'peso', 'currency'
+        ];
+        return financialKeywords.some(keyword => lowerContent.includes(keyword));
     }
     // Create Gmail label for categorization
     async createLabel(name, color) {
