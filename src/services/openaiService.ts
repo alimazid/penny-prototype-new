@@ -174,7 +174,24 @@ export class OpenAIService {
         throw new Error('No response from OpenAI');
       }
 
+      // Debug logging for extraction analysis
+      logger.debug('=== EMAIL EXTRACTION DEBUG ===');
+      logger.debug('Subject:', subject);
+      logger.debug('Body preview:', body.substring(0, 500) + '...');
+      logger.debug('Category:', category);
+      logger.debug('OpenAI raw response:', result.substring(0, 1000) + (result.length > 1000 ? '...' : ''));
+      
       const extractedData = this.parseExtractionResult(result);
+      
+      // Log parsed extraction data
+      logger.debug('Parsed extraction data:', {
+        amount: extractedData.amount,
+        currency: extractedData.currency,
+        merchantName: extractedData.merchantName,
+        confidence: extractedData.confidence,
+        accountNumber: extractedData.accountNumber,
+        transactionType: extractedData.transactionType
+      });
       
       // Validate required fields for credit card transactions
       if (category === 'credit_card') {
@@ -182,10 +199,19 @@ export class OpenAIService {
         return validatedData;
       }
 
-      return extractedData;
+      // General validation for suspicious high-confidence extractions
+      const validatedData = this.validateGeneralExtraction(extractedData, subject, body, category);
+      return validatedData;
     } catch (error) {
       logger.error('Error extracting financial data with OpenAI:', error);
-      return this.fallbackExtraction(subject, body);
+      logger.warn('=== USING FALLBACK EXTRACTION ===');
+      logger.debug('Fallback extraction inputs - Subject:', subject);
+      logger.debug('Fallback extraction inputs - Body preview:', body.substring(0, 500) + '...');
+      
+      const fallbackData = this.fallbackExtraction(subject, body);
+      logger.debug('Fallback extraction result:', fallbackData);
+      
+      return fallbackData;
     }
   }
 
@@ -275,6 +301,16 @@ export class OpenAIService {
       }
       
       const parsed = JSON.parse(jsonString);
+      
+      // Debug log the parsed JSON
+      logger.debug('Successfully parsed JSON from OpenAI response:', {
+        extractedJsonString: jsonString,
+        parsedFields: Object.keys(parsed),
+        originalConfidence: parsed.confidence,
+        rawAmount: parsed.amount,
+        rawCurrency: parsed.currency
+      });
+      
       return {
         amount: parsed.amount ? Number(parsed.amount) : undefined,
         currency: parsed.currency ? String(parsed.currency) : undefined,
@@ -634,6 +670,92 @@ export class OpenAIService {
       }
     }
     return undefined;
+  }
+
+  /**
+   * General validation to flag high confidence but suspicious extractions
+   */
+  private validateGeneralExtraction(
+    data: FinancialDataExtraction,
+    subject: string,
+    body: string,
+    category: string
+  ): FinancialDataExtraction {
+    let warningFlags: string[] = [];
+    let adjustedConfidence = data.confidence || 0;
+
+    // Flag 1: High confidence but very few fields extracted
+    const extractedFieldCount = [
+      data.amount,
+      data.currency,
+      data.merchantName,
+      data.date,
+      data.accountNumber,
+      data.transactionId
+    ].filter(field => field !== undefined && field !== null && field !== '').length;
+
+    if (adjustedConfidence > 0.7 && extractedFieldCount < 3) {
+      warningFlags.push('HIGH_CONFIDENCE_FEW_FIELDS');
+      adjustedConfidence = Math.min(adjustedConfidence, 0.6);
+      logger.warn(`🚨 VALIDATION WARNING: High confidence (${data.confidence}) but only ${extractedFieldCount} fields extracted`);
+    }
+
+    // Flag 2: Amount seems unrealistic for context
+    if (data.amount && data.amount > 999999) {
+      warningFlags.push('UNREALISTIC_AMOUNT');
+      adjustedConfidence = Math.min(adjustedConfidence, 0.5);
+      logger.warn(`🚨 VALIDATION WARNING: Suspiciously high amount: ${data.amount}`);
+    }
+
+    // Flag 3: Currency mismatch with content language
+    if (data.currency && body.includes('RD$') && data.currency !== 'DOP') {
+      warningFlags.push('CURRENCY_MISMATCH');
+      adjustedConfidence = Math.min(adjustedConfidence, 0.6);
+      logger.warn(`🚨 VALIDATION WARNING: Currency mismatch - found RD$ but extracted ${data.currency}`);
+    }
+
+    // Flag 4: Merchant name doesn't make sense for detected content
+    if (data.merchantName && data.merchantName.length < 2) {
+      warningFlags.push('INVALID_MERCHANT');
+      adjustedConfidence = Math.min(adjustedConfidence, 0.5);
+      logger.warn(`🚨 VALIDATION WARNING: Invalid merchant name: "${data.merchantName}"`);
+    }
+
+    // Flag 5: Date format seems wrong
+    if (data.date && !data.date.match(/\d{4}-\d{2}-\d{2}/) && !data.date.match(/\d{1,2}\/\d{1,2}\/\d{4}/)) {
+      warningFlags.push('INVALID_DATE_FORMAT');
+      adjustedConfidence = Math.min(adjustedConfidence, 0.6);
+      logger.warn(`🚨 VALIDATION WARNING: Suspicious date format: "${data.date}"`);
+    }
+
+    // Flag 6: Subject/body doesn't seem to match extracted category
+    const subjectBodyText = `${subject} ${body}`.toLowerCase();
+    if (category === 'credit_card' && !subjectBodyText.includes('tarjeta') && !subjectBodyText.includes('card')) {
+      warningFlags.push('CATEGORY_CONTENT_MISMATCH');
+      adjustedConfidence = Math.min(adjustedConfidence, 0.4);
+      logger.warn(`🚨 VALIDATION WARNING: Category is credit_card but content doesn't mention cards`);
+    }
+
+    // Log all validation warnings
+    if (warningFlags.length > 0) {
+      logger.warn('=== EXTRACTION VALIDATION WARNINGS ===');
+      logger.warn('Subject:', subject);
+      logger.warn('Category:', category);
+      logger.warn('Original confidence:', data.confidence);
+      logger.warn('Adjusted confidence:', adjustedConfidence);
+      logger.warn('Warning flags:', warningFlags);
+      logger.warn('Extracted data:', {
+        amount: data.amount,
+        currency: data.currency,
+        merchantName: data.merchantName,
+        date: data.date
+      });
+    }
+
+    return {
+      ...data,
+      confidence: adjustedConfidence
+    };
   }
 }
 

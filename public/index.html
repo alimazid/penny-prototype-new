@@ -529,6 +529,35 @@
                                             </div>
                                         </div>
                                     </div>
+                                    
+                                    <!-- Email Content Preview (for debugging extraction issues) -->
+                                    <div class="mt-3 border-t border-gray-200 pt-3">
+                                        <div x-data="{ showContent: false }">
+                                            <button @click="showContent = !showContent" 
+                                                    class="text-sm text-blue-600 hover:text-blue-800 font-medium">
+                                                <span x-show="!showContent">📄 Show Email Content</span>
+                                                <span x-show="showContent">📄 Hide Email Content</span>
+                                            </button>
+                                            <div x-show="showContent" class="mt-2 p-3 bg-gray-50 rounded border text-sm">
+                                                <div class="mb-2">
+                                                    <span class="font-medium text-gray-700">Subject:</span>
+                                                    <div class="text-gray-600 break-words" x-text="email.subject"></div>
+                                                </div>
+                                                <div class="mb-2">
+                                                    <span class="font-medium text-gray-700">From:</span>
+                                                    <div class="text-gray-600" x-text="email.sender"></div>
+                                                </div>
+                                                <div x-show="email.bodyPreview">
+                                                    <span class="font-medium text-gray-700">Body Preview:</span>
+                                                    <div class="text-gray-600 break-words whitespace-pre-wrap max-h-40 overflow-y-auto" 
+                                                         x-text="email.bodyPreview"></div>
+                                                </div>
+                                                <div x-show="!email.bodyPreview" class="text-gray-500 italic">
+                                                    No body preview available
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </template>
