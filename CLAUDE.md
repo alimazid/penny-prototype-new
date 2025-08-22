@@ -243,3 +243,4 @@ SESSION_SECRET="..."
 - do not touch the .env files. They are working corretly locally and should not be changed
 - make sure the solution compiles and runes locally without errors before pushing anything
 - avoid generating known technical debt
+- don't push unless you are told to
