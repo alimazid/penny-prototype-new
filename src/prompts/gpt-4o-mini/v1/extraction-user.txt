@@ -34,7 +34,9 @@ Extract these fields if present:
 - transactionId: Transaction or reference ID (look for "referencia", "código")
 - transactionType: debit, credit, payment, transfer, fee, interest (map from Spanish terms)
 - description: Brief transaction description in Spanish if applicable
-- category: Specific category (grocery, restaurant, gas, retail, etc.){{requiredFieldsNote}}
+- category: Specific category (grocery, restaurant, gas, retail, etc.)
+- bankName: Issuing bank name (BHD León, Banco Popular, Banreservas, APAP, Qik, etc.)
+- cardProcessor: Card network/brand (Visa, Mastercard, American Express, etc.){{requiredFieldsNote}}
 
 CRITICAL: You MUST respond with ONLY valid JSON. No explanatory text before or after. Just the JSON object.
 
@@ -49,5 +51,7 @@ Response format (JSON only):
   "transactionType": string,
   "description": string,
   "category": string,
+  "bankName": string,
+  "cardProcessor": string,
   "confidence": number (0-1)
 }

@@ -445,6 +445,16 @@
                                                       x-text="email.extractedData?.accountNumber || '❌ Missing'"></span>
                                             </div>
                                             <div>
+                                                <span class="font-medium">Bank:</span>
+                                                <span :class="email.extractedData?.metadata?.bankName ? 'text-green-600 font-semibold' : 'text-red-600'" 
+                                                      x-text="email.extractedData?.metadata?.bankName || '❌ Missing'"></span>
+                                            </div>
+                                            <div>
+                                                <span class="font-medium">Card:</span>
+                                                <span :class="email.extractedData?.metadata?.cardProcessor ? 'text-blue-600' : 'text-gray-400'" 
+                                                      x-text="email.extractedData?.metadata?.cardProcessor || 'Not detected'"></span>
+                                            </div>
+                                            <div>
                                                 <span class="font-medium">Confidence:</span>
                                                 <span :class="email.extractedData?.confidence >= 0.8 ? 'text-green-600' : email.extractedData?.confidence >= 0.5 ? 'text-yellow-600' : 'text-red-600'" 
                                                       x-text="email.extractedData?.confidence ? Math.round(email.extractedData.confidence * 100) + '%' : 'N/A'"></span>
@@ -501,6 +511,14 @@
                                             <div x-show="email.extractedData?.accountNumber">
                                                 <span class="font-medium">Account:</span>
                                                 <span x-text="email.extractedData?.accountNumber"></span>
+                                            </div>
+                                            <div x-show="email.extractedData?.metadata?.bankName">
+                                                <span class="font-medium">Bank:</span>
+                                                <span x-text="email.extractedData?.metadata?.bankName" class="font-semibold"></span>
+                                            </div>
+                                            <div x-show="email.extractedData?.metadata?.cardProcessor">
+                                                <span class="font-medium">Card:</span>
+                                                <span x-text="email.extractedData?.metadata?.cardProcessor"></span>
                                             </div>
                                             <div>
                                                 <span class="font-medium">Confidence:</span>

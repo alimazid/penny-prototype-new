@@ -23,6 +23,8 @@ export interface FinancialDataExtraction {
   transactionType?: 'debit' | 'credit' | 'payment' | 'transfer' | 'fee' | 'interest';
   description?: string;
   category?: string;
+  bankName?: string;
+  cardProcessor?: string;
   confidence: number;
 }
 
@@ -190,7 +192,9 @@ export class OpenAIService {
         merchantName: extractedData.merchantName,
         confidence: extractedData.confidence,
         accountNumber: extractedData.accountNumber,
-        transactionType: extractedData.transactionType
+        transactionType: extractedData.transactionType,
+        bankName: extractedData.bankName,
+        cardProcessor: extractedData.cardProcessor
       });
       
       // Validate required fields for credit card transactions
@@ -308,7 +312,9 @@ export class OpenAIService {
         parsedFields: Object.keys(parsed),
         originalConfidence: parsed.confidence,
         rawAmount: parsed.amount,
-        rawCurrency: parsed.currency
+        rawCurrency: parsed.currency,
+        rawBankName: parsed.bankName,
+        rawCardProcessor: parsed.cardProcessor
       });
       
       return {
@@ -321,6 +327,8 @@ export class OpenAIService {
         transactionType: parsed.transactionType ? parsed.transactionType : undefined,
         description: parsed.description ? String(parsed.description) : undefined,
         category: parsed.category ? String(parsed.category) : undefined,
+        bankName: parsed.bankName ? String(parsed.bankName) : undefined,
+        cardProcessor: parsed.cardProcessor ? String(parsed.cardProcessor) : undefined,
         confidence: Math.max(0, Math.min(1, Number(parsed.confidence) || 0)),
       };
     } catch (error) {
@@ -486,7 +494,7 @@ export class OpenAIService {
    * Validate that credit card transactions have all required fields (relaxed for Spanish)
    */
   private validateCreditCardExtraction(data: FinancialDataExtraction): FinancialDataExtraction {
-    const requiredFields = ['amount', 'currency', 'merchantName', 'date', 'accountNumber'];
+    const requiredFields = ['amount', 'currency', 'merchantName', 'date', 'accountNumber', 'bankName'];
     const missingFields: string[] = [];
     let score = 0;
 
@@ -531,8 +539,20 @@ export class OpenAIService {
       score += 0.5; // Some account info present
     }
 
+    // Bank name validation (REQUIRED for credit cards)
+    if (!data.bankName || data.bankName.trim().length < 2) {
+      missingFields.push('bankName');
+    } else {
+      score += 1.5; // Bank name present and valid
+    }
+    
+    // Card processor validation (OPTIONAL - bonus points if present)
+    if (data.cardProcessor && data.cardProcessor.trim().length > 0) {
+      score += 0.5; // Bonus for having card processor
+    }
+
     // Calculate confidence based on completeness score
-    const maxScore = 7.5; // Maximum possible score
+    const maxScore = 9.5; // Maximum possible score (updated with bankName and cardProcessor bonus)
     const completenessRatio = score / maxScore;
     
     // Adjust confidence based on how many fields we successfully extracted

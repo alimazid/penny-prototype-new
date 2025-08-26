@@ -4,5 +4,19 @@ IMPORTANT: For credit_card transactions, these fields are REQUIRED and must alwa
 - merchantName (must extract merchant/business name, could be in Spanish)
 - date (must be in ISO 8601 format, convert from DD/MM/YYYY or DD-MM-YYYY)
 - accountNumber (extract last 4 digits from "terminada en XXXX" or similar)
+- bankName (REQUIRED: issuing bank like BHD León, Qik, Banco Popular, Banreservas, APAP, etc.)
 
-If any of these required fields cannot be extracted with reasonable confidence, set confidence to 0.3 or lower but still attempt extraction.
+These fields are OPTIONAL but should be extracted if present:
+- cardProcessor (Visa, Mastercard, American Express, etc. - look for card brand/network logos or mentions)
+
+Dominican Bank Extraction Patterns:
+- Look for bank names in sender email, subject, or body
+- Common Dominican banks: BHD León, Banco Popular, Banreservas, APAP, Qik, Banco Caribe, Banco Santa Cruz
+- Bank may appear as "BHD", "Popular", "Reservas", etc.
+
+Card Processor Extraction Patterns:
+- Look for: "Visa", "Mastercard", "MasterCard", "American Express", "AMEX", "Discover"
+- May appear as logos or text in email body
+- Sometimes appears with card number like "Visa ***1234"
+
+If any of the required fields cannot be extracted with reasonable confidence, set confidence to 0.3 or lower but still attempt extraction.

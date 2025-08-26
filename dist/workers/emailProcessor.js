@@ -403,6 +403,8 @@ class EmailProcessor {
                         transactionType: null,
                         description: null,
                         category: null,
+                        bankName: null,
+                        cardProcessor: null,
                         confidence: 0.0
                     };
                 }
@@ -425,7 +427,11 @@ class EmailProcessor {
                     referenceNumber: extraction.transactionId ?? null,
                     transactionType: this.mapTransactionTypeToEnum(extraction.transactionType),
                     description: extraction.description ?? null,
-                    extractionScore: extraction.confidence
+                    extractionScore: extraction.confidence,
+                    metadata: {
+                        bankName: extraction.bankName ?? null,
+                        cardProcessor: extraction.cardProcessor ?? null
+                    }
                 }
             });
             // Update email status

@@ -17,6 +17,8 @@ export interface FinancialDataExtraction {
     transactionType?: 'debit' | 'credit' | 'payment' | 'transfer' | 'fee' | 'interest';
     description?: string;
     category?: string;
+    bankName?: string;
+    cardProcessor?: string;
     confidence: number;
 }
 export declare class OpenAIService {
