@@ -72,6 +72,10 @@ export declare class OpenAIService {
     private extractMerchantFromText;
     private extractDateFromText;
     private extractAccountFromText;
+    /**
+     * General validation to flag high confidence but suspicious extractions
+     */
+    private validateGeneralExtraction;
 }
 export declare const openaiService: OpenAIService;
 //# sourceMappingURL=openaiService.d.ts.map

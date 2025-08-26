@@ -1,0 +1,373 @@
+{
+  "emailMonitorTab": {
+    "description": "Complete data structure for all visible data in the Email Monitor tab",
+    "lastUpdated": "2025-08-23T00:00:00Z",
+    
+    "systemStatus": {
+      "api": "healthy",
+      "database": "healthy", 
+      "redis": "healthy",
+      "websocket": {
+        "connected": true,
+        "realTimeMonitoring": "active"
+      }
+    },
+
+    "monitoringControls": {
+      "selectedAccount": {
+        "accountId": "clxyz123example",
+        "email": "user@example.com",
+        "lastSync": "2025-08-23T10:30:00Z"
+      },
+      "monitoringStatus": {
+        "active": true,
+        "startedAt": "2025-08-23T09:00:00Z",
+        "accountId": "clxyz123example"
+      },
+      "availableActions": [
+        {
+          "action": "start",
+          "enabled": false,
+          "label": "▶️ Start"
+        },
+        {
+          "action": "stop", 
+          "enabled": true,
+          "label": "⏸️ Stop"
+        },
+        {
+          "action": "syncNow",
+          "enabled": true,
+          "label": "🔄 Sync Now"
+        },
+        {
+          "action": "processAll",
+          "enabled": true,
+          "label": "🤖 Process All (5)",
+          "pendingCount": 5
+        }
+      ]
+    },
+
+    "processingStatistics": {
+      "received": 25,
+      "classified": 20,
+      "financial": 15,
+      "extracted": 12,
+      "openaiCalls": 32
+    },
+
+    "realtimeUpdates": [
+      {
+        "timestamp": "2025-08-23T10:35:22Z",
+        "message": "Email classified: CREDIT_CARD transaction detected",
+        "type": "classified"
+      },
+      {
+        "timestamp": "2025-08-23T10:35:15Z", 
+        "message": "New email received from alerts@chase.com",
+        "type": "received"
+      },
+      {
+        "timestamp": "2025-08-23T10:34:58Z",
+        "message": "Data extraction completed for email abc12345",
+        "type": "extracted"
+      }
+    ],
+
+    "emailsList": [
+      {
+        "id": "email_abc123456",
+        "subject": "Transaction Alert: $125.99 at Best Buy",
+        "sender": "alerts@chase.com",
+        "recipients": ["user@example.com"],
+        "receivedAt": "2025-08-23T10:30:00Z",
+        "processingStatus": "COMPLETED",
+        "classification": "CREDIT_CARD",
+        "confidenceScore": 0.95,
+        "language": "en",
+        "hasAttachments": false,
+        "gmailId": "gmail_msg_18f2c3d4e5",
+        "bodyPreview": "A purchase of $125.99 has been made on your Chase credit card ending in 1234...",
+        
+        "aiClassification": {
+          "isFinancial": true,
+          "category": "CREDIT_CARD",
+          "confidence": 0.95,
+          "reasoning": "Email contains transaction amount, merchant name, and credit card details"
+        },
+
+        "extractedData": {
+          "amount": 125.99,
+          "currency": "USD",
+          "date": "2025-08-23",
+          "merchantName": "Best Buy",
+          "merchantCategory": "Electronics",
+          "accountNumber": "****1234",
+          "transactionType": "DEBIT",
+          "description": "Purchase at Best Buy",
+          "referenceNumber": "REF123456789",
+          "transactionId": "REF123456789",
+          "balance": null,
+          "confidence": 0.92,
+          "isValidated": false,
+          "validatedBy": null,
+          "validatedAt": null,
+          "metadata": {
+            "extractionMethod": "openai_gpt4",
+            "processingTime": 2.3
+          }
+        },
+        
+        "errorMessage": null
+      },
+      {
+        "id": "email_def789012",
+        "subject": "Monthly Statement Available - Wells Fargo",
+        "sender": "statements@wellsfargo.com", 
+        "recipients": ["user@example.com"],
+        "receivedAt": "2025-08-23T08:15:00Z",
+        "processingStatus": "CLASSIFIED",
+        "classification": "BANKING",
+        "confidenceScore": 0.88,
+        "language": "en", 
+        "hasAttachments": true,
+        "gmailId": "gmail_msg_98h7g6f5d4",
+        "bodyPreview": "Your monthly statement is now available in online banking...",
+        
+        "aiClassification": {
+          "isFinancial": true,
+          "category": "BANKING",
+          "confidence": 0.88,
+          "reasoning": "Banking statement notification from verified financial institution"
+        },
+
+        "extractedData": null,
+        "errorMessage": null
+      },
+      {
+        "id": "email_ghi345678",
+        "subject": "Payment Confirmation - Netflix",
+        "sender": "info@netflix.com",
+        "recipients": ["user@example.com"], 
+        "receivedAt": "2025-08-23T07:45:00Z",
+        "processingStatus": "COMPLETED",
+        "classification": "PAYMENT",
+        "confidenceScore": 0.91,
+        "language": "en",
+        "hasAttachments": false,
+        "gmailId": "gmail_msg_77k9l8m7n6",
+        "bodyPreview": "Thank you for your payment of $15.49 for your Netflix subscription...",
+        
+        "aiClassification": {
+          "isFinancial": true,
+          "category": "PAYMENT", 
+          "confidence": 0.91,
+          "reasoning": "Payment confirmation with amount and service details"
+        },
+
+        "extractedData": {
+          "amount": 15.49,
+          "currency": "USD", 
+          "date": "2025-08-23",
+          "merchantName": "Netflix",
+          "merchantCategory": "Subscription Services",
+          "accountNumber": null,
+          "transactionType": "DEBIT",
+          "description": "Monthly subscription payment",
+          "referenceNumber": "NETFLIX_PAY_456789",
+          "transactionId": "NETFLIX_PAY_456789", 
+          "balance": null,
+          "confidence": 0.89,
+          "isValidated": false,
+          "validatedBy": null,
+          "validatedAt": null,
+          "metadata": {
+            "extractionMethod": "openai_gpt4",
+            "processingTime": 1.8
+          }
+        },
+        
+        "errorMessage": null
+      },
+      {
+        "id": "email_jkl901234",
+        "subject": "Weekly Newsletter - Tech Updates",
+        "sender": "newsletter@techcrunch.com",
+        "recipients": ["user@example.com"],
+        "receivedAt": "2025-08-23T06:30:00Z", 
+        "processingStatus": "COMPLETED",
+        "classification": "UNCLASSIFIED",
+        "confidenceScore": 0.02,
+        "language": "en",
+        "hasAttachments": false,
+        "gmailId": "gmail_msg_55p9q8r7s6",
+        "bodyPreview": "This week in tech: AI advances, startup funding rounds...",
+        
+        "aiClassification": {
+          "isFinancial": false,
+          "category": "Newsletter",
+          "confidence": 0.98,
+          "reasoning": "Content is technology news and updates, no financial information"
+        },
+
+        "extractedData": null,
+        "errorMessage": null
+      },
+      {
+        "id": "email_mno567890",
+        "subject": "Transaction Declined - Insufficient Funds",
+        "sender": "alerts@bankofamerica.com",
+        "recipients": ["user@example.com"],
+        "receivedAt": "2025-08-23T05:20:00Z",
+        "processingStatus": "FAILED",
+        "classification": "UNCLASSIFIED", 
+        "confidenceScore": null,
+        "language": "en",
+        "hasAttachments": false,
+        "gmailId": "gmail_msg_33t4u5v6w7",
+        "bodyPreview": "A transaction attempt was declined due to insufficient funds...",
+        
+        "aiClassification": null,
+        "extractedData": null,
+        "errorMessage": "OpenAI API rate limit exceeded. Please try again later."
+      }
+    ],
+
+    "availableAccounts": [
+      {
+        "id": "clxyz123example",
+        "email": "user@example.com", 
+        "user": "John Doe",
+        "lastSync": "2025-08-23T10:30:00Z",
+        "isConnected": true
+      },
+      {
+        "id": "cldef456example", 
+        "email": "work@example.com",
+        "user": "John Doe", 
+        "lastSync": "2025-08-22T16:45:00Z",
+        "isConnected": true
+      }
+    ],
+
+    "actionButtons": {
+      "generateSample": {
+        "enabled": true,
+        "label": "✨ Generate Sample",
+        "generating": false
+      },
+      "clearData": {
+        "enabled": true, 
+        "label": "🗑️ Clear Data"
+      }
+    },
+
+    "emailContentPreview": {
+      "expandable": true,
+      "fields": [
+        "subject",
+        "sender", 
+        "bodyPreview"
+      ]
+    },
+
+    "creditCardRequiredFields": {
+      "description": "Special validation for CREDIT_CARD classified emails",
+      "requiredFields": [
+        "amount", 
+        "currency",
+        "merchantName",
+        "date",
+        "accountNumber",
+        "transactionType",
+        "referenceNumber", 
+        "description"
+      ],
+      "validation": {
+        "confidence": {
+          "high": 0.8,
+          "medium": 0.5,
+          "low": 0.0
+        }
+      }
+    },
+
+    "processingFlow": {
+      "steps": [
+        {
+          "step": 1,
+          "name": "Email Received",
+          "status": "PENDING"
+        },
+        {
+          "step": 2, 
+          "name": "AI Classification",
+          "status": "PROCESSING" 
+        },
+        {
+          "step": 3,
+          "name": "Data Extraction", 
+          "status": "CLASSIFIED"
+        },
+        {
+          "step": 4,
+          "name": "Processing Complete",
+          "status": "COMPLETED"
+        }
+      ]
+    },
+
+    "websocketEvents": {
+      "subscriptions": [
+        "email_update",
+        "email_processing", 
+        "connected"
+      ],
+      "eventTypes": {
+        "received": "New email detected",
+        "classified": "AI classification completed", 
+        "extracted": "Data extraction completed",
+        "completed": "Processing finished",
+        "failed": "Processing error occurred"
+      }
+    },
+
+    "apiEndpoints": {
+      "start": "POST /api/monitoring/start",
+      "stop": "POST /api/monitoring/stop", 
+      "sync": "POST /api/monitoring/sync",
+      "status": "GET /api/monitoring/status",
+      "statusAccount": "GET /api/monitoring/status/:accountId",
+      "emails": "GET /api/monitoring/emails/:accountId",
+      "processEmail": "POST /api/monitoring/process-email/:emailId", 
+      "processPending": "POST /api/monitoring/process-pending/:accountId",
+      "queueStats": "GET /api/queue/stats?accountId=:accountId"
+    },
+
+    "uiInteractions": {
+      "accountSelection": {
+        "onChange": "onAccountChange()",
+        "persisted": true,
+        "localStorage": "penny_selectedAccountId"
+      },
+      "monitoringControls": {
+        "startMonitoring": "startMonitoring()",
+        "stopMonitoring": "stopMonitoring()", 
+        "triggerManualSync": "triggerManualSync()",
+        "processAllPending": "processAllPending()"
+      },
+      "emailActions": {
+        "processManually": "processEmailManually(emailId)",
+        "showContent": "Toggle email body preview",
+        "retryFailed": "Process failed emails again"
+      }
+    },
+
+    "localStoragePersistence": {
+      "selectedAccountId": "penny_selectedAccountId",
+      "monitoringStatus": "penny_monitoringStatus", 
+      "activeTab": "penny_activeTab"
+    }
+  }
+}
